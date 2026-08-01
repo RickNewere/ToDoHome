@@ -28,6 +28,14 @@ data class ChoreStatus(
         else -> false
     }
 
+    /** Copy with [user]'s tick already set, used to paint the widget the moment
+     *  the button is pressed instead of waiting for the round trip. */
+    fun withTickFrom(user: String?): ChoreStatus = when (user) {
+        "riccardo" -> copy(riccardoChecked = true)
+        "roberta" -> copy(robertaChecked = true)
+        else -> this
+    }
+
     /** Short badge shown on the right of a widget row. */
     fun badge(): String = when {
         daysLate > 0 -> "+${daysLate}g"

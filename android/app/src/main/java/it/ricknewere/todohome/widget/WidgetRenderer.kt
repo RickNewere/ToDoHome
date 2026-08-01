@@ -27,8 +27,14 @@ object WidgetRenderer {
     private const val CHROME_DP = 68
     private const val ROW_DP = 34
 
+    /** How long the "Fatto ✓" confirmation stays on screen before the row goes. */
+    private const val CONFIRM_MS = 1500L
+
     @Volatile private var cache: List<ChoreStatus>? = null
     @Volatile private var cachedAt = 0L
+
+    /** Chore currently showing the confirmation badge, if any. */
+    @Volatile private var justTicked: String? = null
 
     fun update(context: Context, ids: IntArray, forceFetch: Boolean) {
         if (ids.isEmpty()) return
@@ -48,20 +54,53 @@ object WidgetRenderer {
             return
         }
 
+        paint(context, manager, ids, chores)
+    }
+
+    private fun paint(
+        context: Context,
+        manager: AppWidgetManager,
+        ids: IntArray,
+        chores: List<ChoreStatus>,
+    ) {
         ids.forEach { id ->
             manager.updateAppWidget(id, buildView(context, chores, rowsFor(manager, id)))
         }
     }
 
-    /** Toggles this phone's owner tick, then pushes the new state to every widget. */
+    /**
+     * Toggles this phone's owner tick.
+     *
+     * When adding a tick the row is repainted straight away with a "Fatto ✓"
+     * badge and held there for a moment, so the press is acknowledged before
+     * the chore leaves the list. Removing a tick skips the confirmation.
+     */
     fun toggle(context: Context, choreId: String) {
         val url = Prefs.supabaseUrl(context) ?: return
         val key = Prefs.supabaseKey(context) ?: return
         val user = Prefs.user(context) ?: return
 
+        val manager = AppWidgetManager.getInstance(context)
+        val ids = ChoreWidgetProvider.allWidgetIds(context)
+        val known = cache
+        val adding = known?.firstOrNull { it.id == choreId }?.checkedBy(user) == false
+
+        if (adding && known != null) {
+            justTicked = choreId
+            paint(
+                context,
+                manager,
+                ids,
+                known.map { if (it.id == choreId) it.withTickFrom(user) else it },
+            )
+        }
+
         SupabaseApi.toggle(url, key, choreId, user)
         cache = null
-        update(context, ChoreWidgetProvider.allWidgetIds(context), forceFetch = true)
+
+        if (adding) Thread.sleep(CONFIRM_MS)
+        justTicked = null
+        update(context, ids, forceFetch = true)
     }
 
     private fun loadChores(
@@ -108,24 +147,43 @@ object WidgetRenderer {
 
         rv.removeAllViews(R.id.rows)
 
-        // Most overdue first, then what is due today. Chores already ticked by
-        // this phone's owner sink to the bottom: the other person owes them.
-        val pending = chores
-            .filter { it.isPending }
-            .sortedWith(
-                compareBy({ it.checkedBy(me) }, { -it.daysLate }),
-            )
+        // The widget is this person's own list: once you tick a chore it leaves,
+        // even though it stays open until the other one ticks it too. The row
+        // just ticked is held for a moment so the confirmation is visible.
+        //
+        // Most overdue first; the server order breaks ties because sortedBy is
+        // stable, so a row never jumps out from under the finger pressing it.
+        val mine = chores.filter { it.isPending && !it.checkedBy(me) }
+        val visible = chores
+            .filter { it.isPending && (!it.checkedBy(me) || it.id == justTicked) }
+            .sortedByDescending { it.daysLate }
             .take(maxRows)
 
-        if (pending.isEmpty()) {
+        if (visible.isEmpty()) {
             rv.setViewVisibility(R.id.empty, View.VISIBLE)
-            rv.setTextViewText(R.id.empty, "Niente in sospeso. Casimiro è contento.")
+            rv.setTextViewText(R.id.empty, emptyMessage(chores, me))
         } else {
             rv.setViewVisibility(R.id.empty, View.GONE)
-            pending.forEach { rv.addView(R.id.rows, rowView(context, it, me)) }
+            visible.forEach { rv.addView(R.id.rows, rowView(context, it, me)) }
+        }
+
+        // Nothing left for you, but the house is not done: say whose turn it is.
+        if (mine.isEmpty() && chores.any { it.isPending }) {
+            rv.setTextViewText(R.id.subtitle, "Hai fatto la tua parte")
         }
 
         return rv
+    }
+
+    private fun emptyMessage(chores: List<ChoreStatus>, me: String?): String {
+        val waitingOnPartner = chores.any {
+            it.isPending && it.checkedBy(me) && !it.checkedByPartnerOf(me)
+        }
+        val partner = if (me == "riccardo") "Roberta" else "Riccardo"
+        return when {
+            waitingOnPartner -> "Tutto spuntato da te. Ora tocca a $partner."
+            else -> "Niente in sospeso. Casimiro è contento."
+        }
     }
 
     private fun rowView(context: Context, chore: ChoreStatus, me: String?): RemoteViews {
@@ -135,11 +193,18 @@ object WidgetRenderer {
 
         row.setTextViewText(R.id.row_emoji, chore.emoji)
         row.setTextViewText(R.id.row_name, chore.name)
-        row.setTextViewText(R.id.row_days, chore.badge())
-        row.setTextColor(
-            R.id.row_days,
-            context.getColor(if (chore.isLate) R.color.widget_late else R.color.widget_due),
-        )
+
+        // Freshly ticked rows confirm the press instead of showing the deadline.
+        if (chore.id == justTicked) {
+            row.setTextViewText(R.id.row_days, "Fatto ✓")
+            row.setTextColor(R.id.row_days, context.getColor(R.color.widget_ok))
+        } else {
+            row.setTextViewText(R.id.row_days, chore.badge())
+            row.setTextColor(
+                R.id.row_days,
+                context.getColor(if (chore.isLate) R.color.widget_late else R.color.widget_due),
+            )
+        }
 
         // Shows whether the other person has already confirmed this chore.
         val partnerLabel = if (me == "riccardo") "Ro" else "Ri"

@@ -67,6 +67,21 @@ via `WebAppBridge.setConfig`, che le salva in SharedPreferences; il widget legge
 da lì e interroga PostgREST da solo con `HttpURLConnection`. Quindi il widget
 non funziona finché l'app non è stata aperta almeno una volta.
 
+### Comportamento del widget
+
+Il widget è la lista **personale** di chi usa quel telefono, non lo specchio
+della casa: mostra solo le faccende che quella persona non ha ancora spuntato.
+Toccando il cerchio parte una conferma di 1,5 secondi (badge "Fatto ✓", riga
+tenuta in vita da `justTicked`), poi la riga sparisce. La faccenda resta
+comunque aperta finché non spunta anche l'altra persona.
+
+L'ordinamento delle righe non dipende da chi ha spuntato: `sortedByDescending`
+è stabile e mantiene l'ordine del server a parità di ritardo. Serve a evitare
+che una riga si sposti sotto il dito mentre la si tocca.
+
+L'umore di Casimiro invece resta sullo stato della casa, non su quello
+personale.
+
 `TODOHOME_URL` in `gradle.properties` decide cosa carica la WebView. Per provare
 contro il dev server:
 

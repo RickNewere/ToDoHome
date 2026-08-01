@@ -29,10 +29,19 @@ state of the home. He is calm when everything is under control, annoyed when one
 chore slips, angry when several are late, and furious, steaming from the chimney
 with a vein popping, when the place is falling apart.
 
-**Android widget.** The mascot sits on the home screen with the most urgent
+**Editing the list.** The chores that ship with the app are only a starting
+point. The plus button in the header creates a new one, and the pencil on any
+card opens it for editing: name, icon, category, how often it comes back,
+whether it is a weekend job, and a note. The same panel deletes it, behind a
+second tap for confirmation.
+
+**Android widget.** The mascot sits on the home screen with your own pending
 chores underneath. Each row shows how late it is and whether the other person
-has already confirmed it. Tapping the circle on the right ticks your own box
-without opening the app. Tapping the mascot forces a refresh.
+has already confirmed it. Tapping the circle on the right ticks your box
+without opening the app: the row turns green and says "Fatto ✓" for a moment,
+then leaves the list, because from your side it is done. When you have ticked
+everything the widget says whose turn it is now. Tapping the mascot forces a
+refresh.
 
 **Live sync.** A tick on one phone shows up on the other one straight away.
 

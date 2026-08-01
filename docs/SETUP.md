@@ -101,21 +101,29 @@ Cosa fa il widget:
 - La casetta cambia faccia a seconda della situazione: serena se non c'è niente
   da fare, neutra se c'è roba in giornata ma sei in tempo, poi via via più
   arrabbiata man mano che le cose restano indietro.
-- Ogni riga mostra la faccenda, di quanti giorni è in ritardo e se l'altra
-  persona ha già confermato (`Ro ✓` o `Ri ✓`).
-- Il cerchio a destra è la **tua** spunta: toccalo per confermare senza aprire
-  l'app.
+- Le righe sono la **tua** lista: compaiono solo le faccende che tu non hai
+  ancora spuntato.
+- Ogni riga mostra di quanti giorni è in ritardo e se l'altra persona ha già
+  confermato (`Ro ✓` o `Ri ✓`).
+- Il cerchio a destra è la tua spunta. Toccandolo la riga diventa verde e
+  scrive "Fatto ✓" per un secondo e mezzo, poi sparisce. La faccenda resta
+  comunque aperta finché non spunta anche l'altra persona.
+- Quando hai spuntato tutto, il widget ti dice che tocca all'altro.
 - Toccando la casetta forza un aggiornamento, toccando il resto apre l'app.
 
 ## 6. Cambiare le faccende
 
-Le faccende stanno nella tabella `chores` su Supabase. Puoi modificarle dal
-**Table Editor**:
+Si fa direttamente dall'app, senza passare da Supabase:
 
-- `cadence_days`: ogni quanti giorni torna.
-- `weekend_only`: se `true`, la scadenza slitta al primo sabato utile.
-- `active`: mettila a `false` per togliere una faccenda senza perdere lo storico.
-- `sort_order`: l'ordine in cui compaiono.
+- Il **+** in alto a destra crea una faccenda nuova.
+- La **matita** su una scheda la apre in modifica: nome, icona, categoria, ogni
+  quanto torna, se è un lavoro da weekend e la nota.
+- Nello stesso pannello c'è **Elimina**, che chiede una seconda conferma.
+  Eliminare una faccenda cancella anche il suo storico.
+
+Se preferisci lavorare sui dati grezzi, la tabella è `chores` nel **Table
+Editor** di Supabase. Lì c'è anche `active`: mettila a `false` per togliere una
+faccenda dalle liste conservando lo storico, cosa che dall'app non si può fare.
 
 ## Problemi comuni
 
