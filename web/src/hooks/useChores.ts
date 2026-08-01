@@ -142,18 +142,42 @@ export function useChores(me: Person | null) {
     [me, load, loadHistory],
   )
 
-  /** Undo the last completion of a chore, for when it was ticked by mistake. */
-  const reopen = useCallback(
+  /** Removes this person's tick from an already completed chore: the closed run
+   *  reopens without their confirmation, so the chore returns to the to-do list
+   *  still carrying the other person's tick. */
+  const untickCompleted = useCallback(
     async (chore: ChoreView) => {
+      if (!me) return
       setChoreBusy(chore.id, true)
-      const { error } = await supabase.rpc('reopen_last', { p_chore_id: chore.id })
-      if (error) setError(error.message)
+
+      const { data, error: findError } = await supabase
+        .from('chore_runs')
+        .select('id')
+        .eq('chore_id', chore.id)
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(1)
+
+      const run = data?.[0]
+      if (findError) {
+        setError(findError.message)
+      } else if (!run) {
+        setError('Non trovo il completamento da annullare.')
+      } else {
+        const patch =
+          me === 'riccardo'
+            ? { completed_at: null, riccardo_at: null }
+            : { completed_at: null, roberta_at: null }
+        const { error } = await supabase.from('chore_runs').update(patch).eq('id', run.id)
+        if (error) setError(error.message)
+      }
+
       await load()
       await loadHistory()
       refreshWidget()
       setChoreBusy(chore.id, false)
     },
-    [load, loadHistory],
+    [me, load, loadHistory],
   )
 
   /** Creates or updates a chore. Returns false when the save was rejected, so
@@ -215,9 +239,11 @@ export function useChores(me: Person | null) {
     const late = chores.filter((c) => c.state === 'late').sort(compareChores)
     const due = chores.filter((c) => c.state === 'due').sort(compareChores)
     const upcoming = chores.filter((c) => c.state === 'upcoming').sort(compareChores)
-    // "Started" means one of the two has ticked but the chore is not closed yet.
-    const started = chores.filter((c) => c.waitingFor.length === 1).sort(compareChores)
-    return { late, due, upcoming, started }
+    // Closed by both and not due again yet: this is the "Fatte" list.
+    const done = chores
+      .filter((c) => c.state === 'upcoming' && c.last_completed_at && !c.open_run_id)
+      .sort((a, b) => (a.last_completed_at! < b.last_completed_at! ? 1 : -1))
+    return { late, due, upcoming, done }
   }, [chores])
 
   const mood = useMemo(() => computeMood(chores), [chores])
@@ -231,7 +257,7 @@ export function useChores(me: Person | null) {
     error,
     busy,
     toggle,
-    reopen,
+    untickCompleted,
     saveChore,
     deleteChore,
     reload: load,

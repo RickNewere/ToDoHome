@@ -19,7 +19,7 @@ import {
 
 const STORAGE_KEY = 'todohome.person'
 
-type Tab = 'todo' | 'all' | 'history'
+type Tab = 'todo' | 'done' | 'all'
 
 function usePerson(): [Person | null, (p: Person) => void] {
   const [person, setPerson] = useState<Person | null>(() => {
@@ -46,7 +46,6 @@ export default function App() {
   const [online, setOnline] = useState(navigator.onLine)
   const [editing, setEditing] = useState<ChoreDraft | null>(null)
   const {
-    chores,
     groups,
     history,
     mood,
@@ -54,7 +53,7 @@ export default function App() {
     error,
     busy,
     toggle,
-    reopen,
+    untickCompleted,
     saveChore,
     deleteChore,
     reload,
@@ -84,8 +83,6 @@ export default function App() {
   const meta = MOOD_META[mood]
   const todoCount = groups.late.length + groups.due.length
 
-  const categories = [...new Set(chores.map((c) => c.category))].sort()
-
   const render = (chore: ChoreView, done = false) => (
     <ChoreCard
       key={chore.id}
@@ -93,7 +90,7 @@ export default function App() {
       me={me}
       busy={busy.has(chore.id)}
       onToggle={toggle}
-      onReopen={reopen}
+      onUntick={untickCompleted}
       onEdit={(c) => setEditing(draftFrom(c))}
       done={done}
     />
@@ -151,11 +148,11 @@ export default function App() {
         <TabButton active={tab === 'todo'} onClick={() => setTab('todo')}>
           Da fare {todoCount > 0 && <span className="tabs__badge">{todoCount}</span>}
         </TabButton>
+        <TabButton active={tab === 'done'} onClick={() => setTab('done')}>
+          Fatte {groups.done.length > 0 && <span className="tabs__count">{groups.done.length}</span>}
+        </TabButton>
         <TabButton active={tab === 'all'} onClick={() => setTab('all')}>
           Tutte
-        </TabButton>
-        <TabButton active={tab === 'history'} onClick={() => setTab('history')}>
-          Storico
         </TabButton>
       </nav>
 
@@ -180,6 +177,47 @@ export default function App() {
             </>
           ))}
 
+        {!loading &&
+          tab === 'done' &&
+          (groups.done.length === 0 && history.length === 0 ? (
+            <EmptyState
+              title="Ancora niente di fatto"
+              line="Qui finiscono le faccende chiuse da entrambi."
+            />
+          ) : (
+            <>
+              <Group title="Fatte, in attesa del prossimo giro" n={groups.done.length}>
+                {groups.done.map((c) => render(c, true))}
+              </Group>
+
+              {groups.done.length > 0 && (
+                <p className="hint">
+                  Togliendo la tua spunta la faccenda torna subito fra quelle da fare.
+                </p>
+              )}
+
+              {history.length > 0 && (
+                <section className="group">
+                  <h2 className="group__title">Storico</h2>
+                  <ul className="history">
+                    {history.map((h) => (
+                      <li key={h.id} className="history__row">
+                        <span aria-hidden="true">{h.emoji}</span>
+                        <span className="history__name">{h.name}</span>
+                        <time dateTime={h.completed_at}>
+                          {new Date(h.completed_at).toLocaleDateString('it-IT', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </time>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </>
+          ))}
+
         {!loading && tab === 'all' && (
           <>
             <Group title="In ritardo" n={groups.late.length}>
@@ -195,30 +233,6 @@ export default function App() {
             </Group>
           </>
         )}
-
-        {!loading &&
-          tab === 'history' &&
-          (history.length === 0 ? (
-            <EmptyState
-              title="Storico vuoto"
-              line="Qui finiscono le faccende chiuse da entrambi."
-            />
-          ) : (
-            <ul className="history">
-              {history.map((h) => (
-                <li key={h.id} className="history__row">
-                  <span aria-hidden="true">{h.emoji}</span>
-                  <span className="history__name">{h.name}</span>
-                  <time dateTime={h.completed_at}>
-                    {new Date(h.completed_at).toLocaleDateString('it-IT', {
-                      day: 'numeric',
-                      month: 'short',
-                    })}
-                  </time>
-                </li>
-              ))}
-            </ul>
-          ))}
       </main>
 
       <footer className="foot">
@@ -238,7 +252,6 @@ export default function App() {
       {editing && (
         <ChoreEditor
           draft={editing}
-          categories={categories}
           onSave={saveChore}
           onDelete={deleteChore}
           onClose={() => setEditing(null)}

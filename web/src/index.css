@@ -275,6 +275,37 @@ code {
   font-weight: 700;
 }
 
+.tabs__count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.tabs__btn--on .tabs__count {
+  background: color-mix(in srgb, var(--bg) 25%, transparent);
+  border-color: transparent;
+  color: inherit;
+}
+
+.hint {
+  margin: -10px 2px 20px;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+/* Completed chores read as settled, not as something still on the list. */
+.card--done {
+  border-left-color: var(--ok);
+}
+
+.card--done .card__due {
+  color: var(--ok);
+}
+
 /* ------------------------------------------------------------------ list */
 
 .group {

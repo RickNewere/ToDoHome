@@ -7,9 +7,9 @@ interface Props {
   me: Person
   busy: boolean
   onToggle: (chore: ChoreView) => void
-  onReopen: (chore: ChoreView) => void
+  onUntick: (chore: ChoreView) => void
   onEdit: (chore: ChoreView) => void
-  /** Rendered in the "Fatte" group: shows the last completion instead of ticks. */
+  /** Rendered in the "Fatte" list: both ticks are in, untick yours to undo. */
   done?: boolean
 }
 
@@ -18,22 +18,24 @@ export default function ChoreCard({
   me,
   busy,
   onToggle,
-  onReopen,
+  onUntick,
   onEdit,
   done = false,
 }: Props) {
   return (
-    <article className={`card card--${chore.state}${busy ? ' card--busy' : ''}`}>
+    <article className={`card card--${done ? 'done' : chore.state}${busy ? ' card--busy' : ''}`}>
       <div className="card__head">
         <span className="card__emoji" aria-hidden="true">
           {chore.emoji}
         </span>
         <div className="card__text">
           <h3 className="card__name">{chore.name}</h3>
-          <p className="card__due">{done ? `Fatta il ${formatDate(chore.last_completed_at)}` : dueLabel(chore)}</p>
+          <p className="card__due">
+            {done ? `Fatta il ${formatDate(chore.last_completed_at)}` : dueLabel(chore)}
+          </p>
           <p className="card__meta">
-            {cadenceLabel(chore)}
-            {chore.note ? ` · ${chore.note}` : ''}
+            {done ? `Torna il ${formatDate(chore.due_date)}` : cadenceLabel(chore)}
+            {!done && chore.note ? ` · ${chore.note}` : ''}
           </p>
         </div>
         <button
@@ -46,37 +48,39 @@ export default function ChoreCard({
         </button>
       </div>
 
-      {done ? (
-        <div className="card__actions">
-          <span className="card__nextdue">Torna il {formatDate(chore.due_date)}</span>
-          <button type="button" className="btn-undo" onClick={() => onReopen(chore)} disabled={busy}>
-            Annulla
-          </button>
-        </div>
-      ) : (
-        <div className="card__ticks">
-          {PEOPLE.map((person) => {
-            const checked = chore.checkedBy[person]
-            const mine = person === me
-            return (
-              <button
-                key={person}
-                type="button"
-                className={`tick${checked ? ' tick--on' : ''}${mine ? ' tick--mine' : ''}`}
-                onClick={() => mine && onToggle(chore)}
-                disabled={!mine || busy}
-                aria-pressed={checked}
-                title={mine ? 'Tocca per spuntare' : `Deve spuntare ${PERSON_LABEL[person]}`}
-              >
-                <span className="tick__box" aria-hidden="true">
-                  {checked ? '✓' : ''}
-                </span>
-                <span className="tick__name">{PERSON_LABEL[person]}</span>
-              </button>
-            )
-          })}
-        </div>
-      )}
+      <div className="card__ticks">
+        {PEOPLE.map((person) => {
+          // A completed chore was ticked by both, by definition.
+          const checked = done || chore.checkedBy[person]
+          const mine = person === me
+          return (
+            <button
+              key={person}
+              type="button"
+              className={`tick${checked ? ' tick--on' : ''}${mine ? ' tick--mine' : ''}`}
+              onClick={() => {
+                if (!mine) return
+                if (done) onUntick(chore)
+                else onToggle(chore)
+              }}
+              disabled={!mine || busy}
+              aria-pressed={checked}
+              title={
+                mine
+                  ? done
+                    ? 'Togli la spunta per rimetterla da fare'
+                    : 'Tocca per spuntare'
+                  : `Deve spuntare ${PERSON_LABEL[person]}`
+              }
+            >
+              <span className="tick__box" aria-hidden="true">
+                {checked ? '✓' : ''}
+              </span>
+              <span className="tick__name">{PERSON_LABEL[person]}</span>
+            </button>
+          )
+        })}
+      </div>
     </article>
   )
 }

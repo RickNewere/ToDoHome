@@ -3,8 +3,6 @@ import type { ChoreDraft } from '../lib/types'
 
 interface Props {
   draft: ChoreDraft
-  /** Categories already in use, offered as suggestions. */
-  categories: string[]
   onSave: (draft: ChoreDraft) => Promise<boolean>
   onDelete: (id: string) => Promise<boolean>
   onClose: () => void
@@ -19,11 +17,18 @@ const CADENCES = [
   { days: 30, label: 'Ogni mese' },
 ]
 
-export default function ChoreEditor({ draft, categories, onSave, onDelete, onClose }: Props) {
+export default function ChoreEditor({ draft, onSave, onDelete, onClose }: Props) {
   const [form, setForm] = useState<ChoreDraft>(draft)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const isNew = draft.id === null
+
+  /** The on screen keyboard covers the lower fields, so bring whatever gets
+   *  focused back into view once the keyboard has finished animating. */
+  const keepInView = (e: React.FocusEvent<HTMLInputElement>) => {
+    const input = e.currentTarget
+    setTimeout(() => input.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300)
+  }
 
   // Escape closes the sheet, like any other modal.
   useEffect(() => {
@@ -86,25 +91,11 @@ export default function ChoreEditor({ draft, categories, onSave, onDelete, onClo
                 className="input"
                 value={form.name}
                 placeholder="Es. Lavare i vetri"
+                onFocus={keepInView}
                 onChange={(e) => set('name', e.target.value)}
               />
             </label>
           </div>
-
-          <label className="field">
-            <span>Categoria</span>
-            <input
-              className="input"
-              list="todohome-categories"
-              value={form.category}
-              onChange={(e) => set('category', e.target.value)}
-            />
-            <datalist id="todohome-categories">
-              {categories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </label>
 
           <div className="field">
             <span>Ogni quanto</span>
@@ -128,6 +119,7 @@ export default function ChoreEditor({ draft, categories, onSave, onDelete, onClo
                 min={1}
                 max={365}
                 value={form.cadenceDays}
+                onFocus={keepInView}
                 onChange={(e) => set('cadenceDays', Math.max(1, Number(e.target.value) || 1))}
               />
               <span>giorni</span>
@@ -146,12 +138,13 @@ export default function ChoreEditor({ draft, categories, onSave, onDelete, onClo
             </span>
           </label>
 
-          <label className="field">
+          <label className="field field--last">
             <span>Nota</span>
             <input
               className="input"
               value={form.note}
               placeholder="Facoltativa"
+              onFocus={keepInView}
               onChange={(e) => set('note', e.target.value)}
             />
           </label>

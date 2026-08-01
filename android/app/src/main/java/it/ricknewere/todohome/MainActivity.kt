@@ -39,10 +39,14 @@ class MainActivity : ComponentActivity() {
         setContentView(root)
 
         // Android 15 draws edge to edge, so the shell has to keep the page out
-        // from under the status and navigation bars itself.
+        // from under the status and navigation bars itself. The keyboard is in
+        // there too: without it the WebView keeps its full height and the
+        // keyboard sits on top of whatever field is being typed into.
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+                WindowInsetsCompat.Type.systemBars() or
+                    WindowInsetsCompat.Type.displayCutout() or
+                    WindowInsetsCompat.Type.ime(),
             )
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             WindowInsetsCompat.CONSUMED
