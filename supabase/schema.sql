@@ -23,6 +23,33 @@ create table if not exists public.chores (
   created_at   timestamptz not null default now()
 );
 
+-- Chores pinned to a calendar date rather than to a cadence, like swapping the
+-- wardrobe on the 30th of May. scheduled_on holds that date; yearly says
+-- whether it comes back on the same day every year or happens only once.
+alter table public.chores add column if not exists scheduled_on date;
+alter table public.chores add column if not exists yearly boolean not null default false;
+
+-- The anniversary of p_anchor that first falls after p_after. Adding an
+-- interval rather than rebuilding the date keeps 29 February from failing:
+-- Postgres pulls it back to the 28th in ordinary years.
+create or replace function public.next_yearly(p_anchor date, p_after date)
+returns date
+language sql
+immutable
+as $$
+  select d
+  from (
+    select (p_anchor + (k || ' years')::interval)::date as d
+    from generate_series(
+      greatest(0, date_part('year', p_after)::int - date_part('year', p_anchor)::int),
+      greatest(0, date_part('year', p_after)::int - date_part('year', p_anchor)::int) + 1
+    ) as k
+  ) candidates
+  where d > p_after
+  order by d
+  limit 1
+$$;
+
 -- One "run" is one pending cycle of a chore. A chore counts as done only when
 -- both Riccardo and Roberta have ticked it, which is when completed_at is set.
 create table if not exists public.chore_runs (
@@ -64,7 +91,11 @@ select
   openrun.riccardo_at,
   openrun.roberta_at,
   due.due_date,
-  (today.d - due.due_date)::integer as days_late
+  (today.d - due.due_date)::integer as days_late,
+  -- Appended at the end on purpose: create or replace view only accepts new
+  -- columns after the existing ones.
+  c.scheduled_on,
+  c.yearly
 from public.chores c
 cross join lateral (
   select (now() at time zone 'Europe/Rome')::date as d
@@ -87,6 +118,9 @@ left join lateral (
 ) openrun on true
 cross join lateral (
   select case
+           -- A chosen date is exact: shifting it to the weekend would defeat
+           -- the point of choosing it.
+           when c.scheduled_on is not null then raw.d
            -- extract(dow) -> 0 Sunday .. 6 Saturday. Weekday lands get pushed
            -- forward to the upcoming Saturday.
            when c.weekend_only and extract(dow from raw.d) between 1 and 5
@@ -94,10 +128,24 @@ cross join lateral (
            else raw.d
          end as due_date
   from (
-    select coalesce(
-             ((lastrun.completed_at at time zone 'Europe/Rome')::date + c.cadence_days),
-             today.d
-           ) as d
+    select case
+             when c.scheduled_on is not null then
+               case
+                 when lastrun.completed_at is null then c.scheduled_on
+                 when c.yearly then public.next_yearly(
+                        c.scheduled_on,
+                        (lastrun.completed_at at time zone 'Europe/Rome')::date
+                      )
+                 -- Done once and never again. A far date parks it among the
+                 -- finished ones, where it can still be undone; the app shows
+                 -- "non torna piu" instead of this placeholder.
+                 else date '9999-12-31'
+               end
+             else coalesce(
+                    ((lastrun.completed_at at time zone 'Europe/Rome')::date + c.cadence_days),
+                    today.d
+                  )
+           end as d
   ) raw
 ) due
 where c.active;

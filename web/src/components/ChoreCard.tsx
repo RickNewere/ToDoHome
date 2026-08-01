@@ -13,6 +13,13 @@ interface Props {
   done?: boolean
 }
 
+/** Second line of a finished card. A chore pinned to a single date has no next
+ *  run, so the placeholder date the view parks it on is never shown. */
+function doneMeta(chore: ChoreView): string {
+  if (chore.scheduled_on && !chore.yearly) return 'Non torna più'
+  return `Torna il ${formatDate(chore.due_date)}`
+}
+
 export default function ChoreCard({
   chore,
   me,
@@ -34,7 +41,7 @@ export default function ChoreCard({
             {done ? `Fatta il ${formatDate(chore.last_completed_at)}` : dueLabel(chore)}
           </p>
           <p className="card__meta">
-            {done ? `Torna il ${formatDate(chore.due_date)}` : cadenceLabel(chore)}
+            {done ? doneMeta(chore) : cadenceLabel(chore)}
             {!done && chore.note ? ` · ${chore.note}` : ''}
           </p>
         </div>

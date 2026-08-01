@@ -100,7 +100,10 @@ export default function App() {
     <div className="app" style={{ '--mood': meta.color } as React.CSSProperties}>
       <header className="topbar">
         <div className="topbar__brand">
-          <span aria-hidden="true">🏠</span> ToDoHome
+          {/* The app icon itself, drawn small. Same artwork as the home screen
+              icon, so the header matches what you tapped to get here. */}
+          <Casimiro mood="calm" size={26} still className="topbar__icon" />
+          <span>ToDoHome</span>
         </div>
         <div className="topbar__right">
           <div className="switcher" role="group" aria-label="Chi sta usando l’app">

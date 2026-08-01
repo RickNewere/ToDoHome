@@ -17,11 +17,19 @@ const CADENCES = [
   { days: 30, label: 'Ogni mese' },
 ]
 
+/** Today as YYYY-MM-DD in local time, the format a date input expects. */
+function todayValue(): string {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
 export default function ChoreEditor({ draft, onSave, onDelete, onClose }: Props) {
   const [form, setForm] = useState<ChoreDraft>(draft)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const isNew = draft.id === null
+  const onDate = form.scheduledOn !== null
 
   /** The on screen keyboard covers the lower fields, so bring whatever gets
    *  focused back into view once the keyboard has finished animating. */
@@ -46,8 +54,10 @@ export default function ChoreEditor({ draft, onSave, onDelete, onClose }: Props)
     setForm((f) => ({ ...f, [key]: value }))
   }
 
+  const canSave = form.name.trim().length > 0 && (!onDate || Boolean(form.scheduledOn))
+
   const save = async () => {
-    if (!form.name.trim()) return
+    if (!canSave) return
     setBusy(true)
     const ok = await onSave(form)
     setBusy(false)
@@ -104,45 +114,98 @@ export default function ChoreEditor({ draft, onSave, onDelete, onClose }: Props)
           </div>
 
           <div className="field">
-            <span>Ogni quanto</span>
-            <div className="chips">
-              {CADENCES.map((c) => (
-                <button
-                  key={c.days}
-                  type="button"
-                  className={`chip${form.cadenceDays === c.days ? ' chip--on' : ''}`}
-                  onClick={() => set('cadenceDays', c.days)}
-                >
-                  {c.label}
-                </button>
-              ))}
+            <span>Quando</span>
+            <div className="chips chips--modes">
+              <button
+                type="button"
+                className={`chip${!onDate ? ' chip--on' : ''}`}
+                onClick={() => set('scheduledOn', null)}
+              >
+                Si ripete
+              </button>
+              <button
+                type="button"
+                className={`chip${onDate ? ' chip--on' : ''}`}
+                onClick={() => set('scheduledOn', form.scheduledOn ?? todayValue())}
+              >
+                In una data
+              </button>
             </div>
-            <label className="field__inline">
-              <span>oppure ogni</span>
-              <input
-                className="input input--num"
-                type="number"
-                min={1}
-                max={365}
-                value={form.cadenceDays}
-                onFocus={keepInView}
-                onChange={(e) => set('cadenceDays', Math.max(1, Number(e.target.value) || 1))}
-              />
-              <span>giorni</span>
-            </label>
           </div>
 
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={form.weekendOnly}
-              onChange={(e) => set('weekendOnly', e.target.checked)}
-            />
-            <span>
-              Solo sabato o domenica
-              <small>La scadenza slitta al primo weekend utile</small>
-            </span>
-          </label>
+          {onDate ? (
+            <>
+              <label className="field">
+                <span>Giorno</span>
+                <input
+                  className="input"
+                  type="date"
+                  value={form.scheduledOn ?? ''}
+                  onFocus={keepInView}
+                  onChange={(e) => set('scheduledOn', e.target.value || null)}
+                />
+              </label>
+
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={form.yearly}
+                  onChange={(e) => set('yearly', e.target.checked)}
+                />
+                <span>
+                  Torna ogni anno
+                  <small>
+                    {form.yearly
+                      ? 'Ricompare lo stesso giorno l’anno prossimo'
+                      : 'Una volta sola: fatta, non torna più'}
+                  </small>
+                </span>
+              </label>
+            </>
+          ) : (
+            <>
+              <div className="field">
+                <span>Ogni quanto</span>
+                <div className="chips">
+                  {CADENCES.map((c) => (
+                    <button
+                      key={c.days}
+                      type="button"
+                      className={`chip${form.cadenceDays === c.days ? ' chip--on' : ''}`}
+                      onClick={() => set('cadenceDays', c.days)}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="field__inline">
+                  <span>oppure ogni</span>
+                  <input
+                    className="input input--num"
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={form.cadenceDays}
+                    onFocus={keepInView}
+                    onChange={(e) => set('cadenceDays', Math.max(1, Number(e.target.value) || 1))}
+                  />
+                  <span>giorni</span>
+                </label>
+              </div>
+
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={form.weekendOnly}
+                  onChange={(e) => set('weekendOnly', e.target.checked)}
+                />
+                <span>
+                  Solo sabato o domenica
+                  <small>La scadenza slitta al primo weekend utile</small>
+                </span>
+              </label>
+            </>
+          )}
 
           <label className="field field--last">
             <span>Nota</span>
@@ -167,12 +230,7 @@ export default function ChoreEditor({ draft, onSave, onDelete, onClose }: Props)
               {confirmDelete ? 'Confermi?' : 'Elimina'}
             </button>
           )}
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={save}
-            disabled={busy || !form.name.trim()}
-          >
+          <button type="button" className="btn-primary" onClick={save} disabled={busy || !canSave}>
             {isNew ? 'Crea' : 'Salva'}
           </button>
         </footer>

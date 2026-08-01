@@ -23,6 +23,12 @@ export interface ChoreStatusRow {
   weekend_only: boolean
   note: string | null
   sort_order: number
+  /** Calendar date this chore is pinned to, YYYY-MM-DD, or null for a cadence
+   *  driven one. When set, cadence_days and weekend_only are ignored. */
+  scheduled_on: string | null
+  /** Only meaningful with scheduled_on: comes back on the same day every year
+   *  instead of happening once. */
+  yearly: boolean
   last_completed_at: string | null
   open_run_id: string | null
   riccardo_at: string | null
@@ -52,6 +58,10 @@ export interface ChoreDraft {
   category: string
   cadenceDays: number
   weekendOnly: boolean
+  /** YYYY-MM-DD when the chore is pinned to a date, null when it runs on a
+   *  cadence. This is what the two modes of the editor switch between. */
+  scheduledOn: string | null
+  yearly: boolean
   note: string
 }
 
@@ -62,6 +72,8 @@ export const EMPTY_DRAFT: ChoreDraft = {
   category: 'Casa',
   cadenceDays: 7,
   weekendOnly: false,
+  scheduledOn: null,
+  yearly: true,
   note: '',
 }
 
@@ -73,6 +85,8 @@ export function draftFrom(chore: ChoreStatusRow): ChoreDraft {
     category: chore.category,
     cadenceDays: chore.cadence_days,
     weekendOnly: chore.weekend_only,
+    scheduledOn: chore.scheduled_on,
+    yearly: chore.yearly,
     note: chore.note ?? '',
   }
 }

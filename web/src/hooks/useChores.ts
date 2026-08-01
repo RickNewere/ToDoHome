@@ -190,12 +190,17 @@ export function useChores(me: Person | null) {
    *  the editor can stay open with the error visible. */
   const saveChore = useCallback(
     async (draft: ChoreDraft): Promise<boolean> => {
+      // A chore pinned to a date ignores cadence and the weekend rule, but the
+      // column stays not null, so a placeholder cadence still has to go in.
+      const scheduled = draft.scheduledOn
       const payload = {
         name: draft.name.trim(),
         emoji: draft.emoji.trim() || '🏠',
         category: draft.category.trim() || 'Casa',
-        cadence_days: draft.cadenceDays,
-        weekend_only: draft.weekendOnly,
+        cadence_days: scheduled ? 365 : draft.cadenceDays,
+        weekend_only: scheduled ? false : draft.weekendOnly,
+        scheduled_on: scheduled,
+        yearly: scheduled ? draft.yearly : false,
         note: draft.note.trim() || null,
       }
 

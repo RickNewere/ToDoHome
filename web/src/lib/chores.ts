@@ -73,7 +73,29 @@ export function dueLabel(chore: ChoreView): string {
   return `Tra ${-n} giorni`
 }
 
-export function cadenceLabel(chore: Pick<ChoreView, 'cadence_days' | 'weekend_only'>): string {
+/** Reads a bare YYYY-MM-DD as a local date. Passing it to Date directly would
+ *  place it at UTC midnight, which lands on the day before west of Greenwich. */
+function localDate(ymd: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd)
+  if (!m) return null
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+}
+
+/** "30 maggio" for a yearly chore, "30 maggio 2026" for a one off. */
+export function scheduleLabel(
+  chore: Pick<ChoreView, 'scheduled_on' | 'yearly'>,
+): string {
+  if (!chore.scheduled_on) return ''
+  const date = localDate(chore.scheduled_on)
+  if (!date) return chore.scheduled_on
+  const day = date.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })
+  return chore.yearly ? `Il ${day}, ogni anno` : `Il ${day} ${date.getFullYear()}, una volta sola`
+}
+
+export function cadenceLabel(
+  chore: Pick<ChoreView, 'cadence_days' | 'weekend_only' | 'scheduled_on' | 'yearly'>,
+): string {
+  if (chore.scheduled_on) return scheduleLabel(chore)
   const d = chore.cadence_days
   let base: string
   if (d === 1) base = 'Ogni giorno'
@@ -86,12 +108,7 @@ export function cadenceLabel(chore: Pick<ChoreView, 'cadence_days' | 'weekend_on
 
 export function formatDate(iso: string | null): string {
   if (!iso) return 'mai'
-  // due_date is a bare YYYY-MM-DD, which Date reads as UTC midnight: west of
-  // Greenwich that renders as the day before. Build it as a local date instead.
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  const date = dateOnly
-    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-    : new Date(iso)
+  const date = localDate(iso) ?? new Date(iso)
   return date.toLocaleDateString('it-IT', {
     day: 'numeric',
     month: 'short',
