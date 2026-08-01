@@ -116,8 +116,14 @@ Cosa fa il widget:
 Si fa direttamente dall'app, senza passare da Supabase:
 
 - Il **+** in alto a destra crea una faccenda nuova.
-- La **matita** su una scheda la apre in modifica: nome, icona, ogni quanto
-  torna, se è un lavoro da weekend e la nota.
+- La **matita** su una scheda la apre in modifica: nome, icona, quando va fatta,
+  se è un lavoro da weekend e la nota.
+- Sotto **Quando** ci sono due modi. **Si ripete** è la cadenza di sempre, ogni
+  tot giorni. **In una data** la lega a un giorno preciso del calendario, per le
+  cose che dipendono dalla data e non da un ritmo: il cambio di stagione, la
+  revisione della caldaia, una scadenza. Con **Torna ogni anno** ricompare lo
+  stesso giorno l'anno dopo, altrimenti si fa una volta e sparisce. Una data
+  scelta non viene mai spostata al weekend.
 - Nello stesso pannello c'è **Elimina**, che chiede una seconda conferma.
   Eliminare una faccenda cancella anche il suo storico.
 

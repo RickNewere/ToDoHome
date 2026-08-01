@@ -100,6 +100,14 @@ fatto.
 
 - `chores`: definizione della faccenda. `cadence_days` è ogni quanti giorni
   torna, `weekend_only` la sposta al primo sabato utile.
+- Faccende a data fissa: `scheduled_on` è il giorno scelto, `yearly` dice se
+  torna ogni anno o se capita una volta sola. Quando `scheduled_on` è
+  valorizzata, `cadence_days` e `weekend_only` non contano: una data scelta non
+  si sposta. Una annuale mai fatta punta alla prossima ricorrenza da oggi in
+  poi (`next_yearly`), così aggiungerla dopo che il giorno è passato non la fa
+  nascere in ritardo. Una una-tantum già fatta viene parcheggiata su
+  `9999-12-31`: resta fra le "Fatte", dove si può ancora annullare, e la scheda
+  scrive "Non torna più" invece di quella data finta.
 - `chore_runs`: un giro aperto per faccenda, con le due spunte e
   `completed_at`. Un indice unico parziale su `chore_id where completed_at is
   null` impedisce che due telefoni creino giri doppi.

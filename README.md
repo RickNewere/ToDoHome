@@ -21,6 +21,13 @@ two days, every three days, weekly, fortnightly or monthly. Once it is closed,
 it reappears when the cadence has elapsed. Chores marked as weekend jobs, like
 cleaning the bathroom or the kitchen, always land on a Saturday or Sunday.
 
+**Or on a date you pick.** A chore can be tied to a calendar day instead of a
+cadence, for the jobs that belong to a date rather than to a rhythm: swapping
+the wardrobe on the 30th of May, the boiler service, a deadline. Say whether it
+comes back on the same day every year or happens once and is gone. A date is
+taken literally, so the weekend rule never moves it, and a yearly chore added
+after its day has passed points at next year rather than showing up late.
+
 **A clear picture of what is late.** The list is grouped into late, due today
 and on track. Anything overdue shows how many days it has been sitting there.
 
@@ -37,9 +44,9 @@ with a vein popping, when the place is falling apart.
 
 **Editing the list.** The chores that ship with the app are only a starting
 point. The plus button in the header creates a new one, and the pencil on any
-card opens it for editing: name, icon, how often it comes back, whether it is a
-weekend job, and a note. The same panel deletes it, behind a second tap for
-confirmation.
+card opens it for editing: name, icon, whether it repeats on a cadence or falls
+on a chosen date, whether it is a weekend job, and a note. The same panel
+deletes it, behind a second tap for confirmation.
 
 **Android widget.** The mascot sits on the home screen with your own pending
 chores underneath. Each row shows how late it is and whether the other person
