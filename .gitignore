@@ -8,6 +8,8 @@ dist-ssr/
 .env
 .env.local
 .env.*.local
+.supabase-token
+.supabase-db-password
 
 # Android
 android/local.properties

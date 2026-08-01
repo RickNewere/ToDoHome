@@ -1,5 +1,20 @@
 # Installazione passo passo
 
+## Via rapida: lo script fa tutto
+
+Se hai un account Supabase, `scripts/setup-supabase.ps1` crea il progetto,
+carica schema e faccende, recupera la chiave anon, scrive `web/.env.local` e
+imposta i secret su GitHub. Ti serve solo un token:
+
+1. Vai su <https://supabase.com/dashboard/account/tokens> e genera un token.
+2. Salvalo nel file `.supabase-token` nella cartella del progetto.
+3. Lancia `powershell -File scripts\setup-supabase.ps1`.
+
+Il token, la chiave anon e la password del database non vengono mai stampati a
+schermo e non finiscono mai in un commit.
+
+Se preferisci fare a mano, sotto ci sono tutti i passaggi.
+
 ## 1. Creare il database su Supabase
 
 Serve un account gratuito su [supabase.com](https://supabase.com). Il piano free
