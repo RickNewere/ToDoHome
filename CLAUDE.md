@@ -128,6 +128,12 @@ impostate sullo spazio 120x128:
 
 Toccando la geometria in uno, va riportata nell'altro.
 
+In Kotlin `Face(...)` si costruisce per posizione, quindi i quattro booleani in
+fondo (`openMouth`, `steam`, `vein`, `sparkles`) sono facilissimi da invertire
+senza che il compilatore dica niente: `angry` è rimasto a lungo con la bocca
+aperta di `furious` e senza fumo. Confrontare i due file campo per campo, non a
+occhio.
+
 ## Android
 
 Nessuna dipendenza Compose: il widget usa RemoteViews. Le uniche librerie sono

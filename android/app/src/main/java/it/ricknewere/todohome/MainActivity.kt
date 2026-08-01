@@ -76,9 +76,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if (savedInstanceState != null) {
-            web.restoreState(savedInstanceState)
-        } else {
+        // restoreState returns null when the saved history could not be read back,
+        // which happens if the bundle was trimmed while the app sat in the
+        // background. Without the fallback the WebView would just stay blank.
+        val restored = savedInstanceState?.let { web.restoreState(it) } != null
+        if (!restored) {
             web.loadUrl(BuildConfig.WEB_URL)
         }
 

@@ -86,7 +86,13 @@ export function cadenceLabel(chore: Pick<ChoreView, 'cadence_days' | 'weekend_on
 
 export function formatDate(iso: string | null): string {
   if (!iso) return 'mai'
-  return new Date(iso).toLocaleDateString('it-IT', {
+  // due_date is a bare YYYY-MM-DD, which Date reads as UTC midnight: west of
+  // Greenwich that renders as the day before. Build it as a local date instead.
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(iso)
+  return date.toLocaleDateString('it-IT', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

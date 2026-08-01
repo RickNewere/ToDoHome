@@ -27,9 +27,11 @@ class WebAppBridge(private val context: Context) {
 
     @JavascriptInterface
     fun setConfig(url: String, anonKey: String) {
+        // Repaint on the first configuration and whenever the backend changes:
+        // the widget caches rows fetched with the previous credentials.
         val wasConfigured = Prefs.isConfigured(context)
-        Prefs.setSupabase(context, url, anonKey)
-        if (!wasConfigured) ChoreWidgetProvider.requestUpdate(context)
+        val changed = Prefs.setSupabase(context, url, anonKey)
+        if (!wasConfigured || changed) ChoreWidgetProvider.requestUpdate(context)
     }
 
     @JavascriptInterface

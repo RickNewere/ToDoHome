@@ -16,7 +16,10 @@ import java.net.URL
 object SupabaseApi {
 
     private const val TAG = "ToDoHomeApi"
-    private const val TIMEOUT_MS = 12_000
+    /** A tick costs two calls plus the confirmation pause, and all of it runs
+     *  inside a broadcast that the system kills after about ten seconds. Keeping
+     *  each call short is what stops a slow network from losing the repaint. */
+    private const val TIMEOUT_MS = 4_000
 
     private val FIELDS = listOf(
         "id", "name", "emoji", "days_late", "riccardo_at", "roberta_at", "sort_order",

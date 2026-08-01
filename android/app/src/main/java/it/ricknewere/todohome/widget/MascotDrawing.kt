@@ -20,6 +20,9 @@ object MascotDrawing {
     private const val ART_H = 128f
     private const val INK = "#1E293B"
 
+    /** Ground shadow: rgba(15, 23, 42, 0.13) in the SVG. */
+    private const val SHADOW = "#0F172A"
+
     private data class Palette(val main: Int, val dark: Int, val light: Int)
 
     private data class Face(
@@ -46,7 +49,7 @@ object MascotDrawing {
         Mood.HAPPY -> Face(64f, 58f, -1f, 5.5f, 116f, false, false, false, true)
         Mood.CALM -> Face(62f, 62f, 0f, 5.5f, 109f, false, false, false, false)
         Mood.ANNOYED -> Face(60f, 68f, 1f, 5.5f, 97f, false, false, false, false)
-        Mood.ANGRY -> Face(57f, 72f, 2f, 5f, 92f, true, false, false, false)
+        Mood.ANGRY -> Face(57f, 72f, 2f, 5f, 92f, false, true, false, false)
         Mood.FURIOUS -> Face(54f, 74f, 2.5f, 4.5f, 90f, true, true, true, false)
     }
 
@@ -71,6 +74,12 @@ object MascotDrawing {
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
         }
+
+        // Ground shadow, under everything else
+        fill.color = Color.parseColor(SHADOW)
+        fill.alpha = 33
+        c.drawOval(RectF(17f, 115f, 103f, 127f), fill)
+        fill.alpha = 255
 
         // Steam out of the chimney, behind everything else
         if (f.steam) {

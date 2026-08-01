@@ -31,12 +31,17 @@ object Prefs {
 
     fun supabaseKey(ctx: Context): String? = prefs(ctx).getString(KEY_ANON, null)
 
-    fun setSupabase(ctx: Context, url: String, anonKey: String) {
-        if (url.isBlank() || anonKey.isBlank()) return
+    /** Returns true when the stored credentials actually changed, so the caller
+     *  knows the widget cache is now stale. */
+    fun setSupabase(ctx: Context, url: String, anonKey: String): Boolean {
+        if (url.isBlank() || anonKey.isBlank()) return false
+        val clean = url.trimEnd('/')
+        if (clean == supabaseUrl(ctx) && anonKey == supabaseKey(ctx)) return false
         prefs(ctx).edit()
-            .putString(KEY_URL, url.trimEnd('/'))
+            .putString(KEY_URL, clean)
             .putString(KEY_ANON, anonKey)
             .apply()
+        return true
     }
 
     fun isConfigured(ctx: Context) = supabaseUrl(ctx) != null && supabaseKey(ctx) != null

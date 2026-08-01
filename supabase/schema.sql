@@ -126,10 +126,26 @@ begin
   order by created_at
   limit 1;
 
+  -- Both phones can find no open run and insert at the same instant. The partial
+  -- unique index catches that, and on conflict lets the loser re-read the row
+  -- the winner created instead of failing the whole call.
   if v_run.id is null then
     insert into public.chore_runs (chore_id)
     values (p_chore_id)
+    on conflict do nothing
     returning * into v_run;
+
+    if v_run.id is null then
+      select * into v_run
+      from public.chore_runs
+      where chore_id = p_chore_id and completed_at is null
+      order by created_at
+      limit 1;
+    end if;
+
+    if v_run.id is null then
+      raise exception 'non riesco ad aprire un giro per questa faccenda';
+    end if;
   end if;
 
   if p_user = 'riccardo' then

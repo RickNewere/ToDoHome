@@ -169,7 +169,13 @@ export function useChores(me: Person | null) {
             ? { completed_at: null, riccardo_at: null }
             : { completed_at: null, roberta_at: null }
         const { error } = await supabase.from('chore_runs').update(patch).eq('id', run.id)
-        if (error) setError(error.message)
+        // Only one run per chore can be open. Hitting that index means the other
+        // phone reopened this chore while this screen was still showing it done.
+        if (error?.code === '23505') {
+          setError('Questa faccenda è già tornata fra quelle da fare.')
+        } else if (error) {
+          setError(error.message)
+        }
       }
 
       await load()
