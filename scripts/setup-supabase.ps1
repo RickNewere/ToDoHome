@@ -12,6 +12,7 @@
 
 param(
     [string]$ProjectName = 'todohome',
+    [string]$OrgName = 'Casa',
     [string]$Region = 'eu-central-1',
     [string]$Repo = 'RickNewere/ToDoHome'
 )
@@ -32,6 +33,24 @@ if ($token.Length -lt 20) { throw 'Il token nel file sembra vuoto o troncato.' }
 $api = 'https://api.supabase.com'
 $auth = @{ Authorization = "Bearer $token" }
 
+# Windows PowerShell hands a JSON array back from Invoke-RestMethod as a single
+# object, so @(...) wraps it instead of flattening it. Left alone, a filter like
+# $list | Where-Object { $_.name -eq 'x' } then matches the whole array and every
+# value gets collected at once. This forces a genuinely flat list.
+function ConvertTo-FlatList {
+    param($Value)
+
+    $out = New-Object System.Collections.ArrayList
+    foreach ($item in $Value) {
+        if ($item -is [System.Collections.IEnumerable] -and $item -isnot [string]) {
+            foreach ($inner in $item) { [void]$out.Add($inner) }
+        } else {
+            [void]$out.Add($item)
+        }
+    }
+    return $out.ToArray()
+}
+
 function Invoke-Supabase {
     param($Method, $Path, $Body)
 
@@ -48,15 +67,28 @@ function Invoke-Supabase {
 }
 
 # --- Organisation ----------------------------------------------------------
+# A brand new Supabase account has none, so create one on the fly.
 
-$orgs = Invoke-Supabase GET '/v1/organizations'
-if (-not $orgs) { throw 'Nessuna organizzazione sul tuo account Supabase.' }
-$org = @($orgs)[0]
-Write-Host "Organizzazione: $($org.name)"
+$orgs = ConvertTo-FlatList (Invoke-Supabase GET '/v1/organizations')
+if ($orgs.Count -eq 0) {
+    Write-Host "Nessuna organizzazione trovata, ne creo una chiamata '$OrgName'..."
+    Invoke-Supabase POST '/v1/organizations' @{ name = $OrgName } | Out-Null
+    # Read the list back rather than trusting the create response: it is the
+    # only way to be sure the organisation is really there.
+    Start-Sleep -Seconds 3
+    $orgs = ConvertTo-FlatList (Invoke-Supabase GET '/v1/organizations')
+}
+
+if ($orgs.Count -eq 0) { throw 'Impossibile creare o leggere una organizzazione Supabase.' }
+
+$org = $orgs[0]
+$orgSlug = if ($org.slug) { $org.slug } else { $org.id }
+if ([string]::IsNullOrWhiteSpace($orgSlug)) { throw 'Slug organizzazione non determinabile.' }
+Write-Host "Organizzazione: $($org.name) [$orgSlug]"
 
 # --- Project ---------------------------------------------------------------
 
-$projects = @(Invoke-Supabase GET '/v1/projects')
+$projects = ConvertTo-FlatList (Invoke-Supabase GET '/v1/projects')
 $project = $projects | Where-Object { $_.name -eq $ProjectName } | Select-Object -First 1
 
 if ($project) {
@@ -69,7 +101,7 @@ if ($project) {
 
     $project = Invoke-Supabase POST '/v1/projects' @{
         name              = $ProjectName
-        organization_slug = $org.id
+        organization_slug = $orgSlug
         db_pass           = $dbPass
         region            = $Region
         plan              = 'free'
@@ -113,9 +145,16 @@ Write-Host "Faccende caricate: $(@($counts)[0].faccende)"
 
 # --- Credentials -----------------------------------------------------------
 
-$keys = @(Invoke-Supabase GET "/v1/projects/$ref/api-keys?reveal=true")
-$anon = ($keys | Where-Object { $_.name -eq 'anon' } | Select-Object -First 1).api_key
-if (-not $anon) { throw 'Non ho trovato la chiave anon fra quelle restituite.' }
+$keys = ConvertTo-FlatList (Invoke-Supabase GET "/v1/projects/$ref/api-keys?reveal=true")
+$anon = $keys |
+    Where-Object { $_.name -eq 'anon' -and $_.type -eq 'legacy' } |
+    Select-Object -First 1 -ExpandProperty api_key
+
+# The endpoint also returns service_role and the secret key, which must never
+# reach the browser bundle. Refuse anything that is not one clean token.
+if ($anon -isnot [string]) { throw 'Chiave anon non trovata o non univoca.' }
+if ($anon -match '\s') { throw 'La chiave anon contiene spazi: sono state raccolte piu chiavi.' }
+if ($anon.Length -lt 40) { throw 'La chiave anon sembra troncata.' }
 
 $url = "https://$ref.supabase.co"
 

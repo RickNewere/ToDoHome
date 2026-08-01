@@ -1,5 +1,7 @@
 package it.ricknewere.todohome
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.webkit.JavascriptInterface
 import it.ricknewere.todohome.data.Prefs
@@ -33,6 +35,20 @@ class WebAppBridge(private val context: Context) {
     @JavascriptInterface
     fun refreshWidget() {
         ChoreWidgetProvider.requestUpdate(context)
+    }
+
+    /** Asks the launcher to drop the widget on the home screen, so the user does
+     *  not have to hunt for it in the widget drawer. Returns false when the
+     *  launcher does not support pinning. */
+    @JavascriptInterface
+    fun pinWidget(): Boolean {
+        val manager = AppWidgetManager.getInstance(context)
+        if (!manager.isRequestPinAppWidgetSupported) return false
+        return manager.requestPinAppWidget(
+            ComponentName(context, ChoreWidgetProvider::class.java),
+            null,
+            null,
+        )
     }
 
     companion object {

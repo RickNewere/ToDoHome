@@ -5,7 +5,7 @@ import PersonPicker from './components/PersonPicker'
 import { useChores } from './hooks/useChores'
 import { MOOD_META } from './lib/chores'
 import { credentials, isConfigured } from './lib/supabase'
-import { syncConfigToWidget, syncUserToWidget } from './lib/bridge'
+import { isAndroidApp, requestPinWidget, syncConfigToWidget, syncUserToWidget } from './lib/bridge'
 import { PEOPLE, PERSON_LABEL, type ChoreView, type Person } from './lib/types'
 
 const STORAGE_KEY = 'todohome.person'
@@ -185,9 +185,16 @@ export default function App() {
       </main>
 
       <footer className="foot">
-        <button type="button" className="btn-ghost" onClick={() => void reload()}>
-          Aggiorna
-        </button>
+        <div className="foot__buttons">
+          <button type="button" className="btn-ghost" onClick={() => void reload()}>
+            Aggiorna
+          </button>
+          {isAndroidApp() && (
+            <button type="button" className="btn-ghost" onClick={() => requestPinWidget()}>
+              Aggiungi il widget
+            </button>
+          )}
+        </div>
         <p className="muted">Una faccenda è chiusa solo quando la spuntano entrambi.</p>
       </footer>
 

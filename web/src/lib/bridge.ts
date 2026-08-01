@@ -6,6 +6,7 @@ interface AndroidBridge {
   setUser(user: string): void
   setConfig(url: string, anonKey: string): void
   refreshWidget(): void
+  pinWidget(): boolean
 }
 
 declare global {
@@ -43,5 +44,16 @@ export function refreshWidget(): void {
     window.ToDoHomeAndroid?.refreshWidget()
   } catch {
     /* not running inside the Android wrapper */
+  }
+}
+
+/** Asks the launcher to drop the widget on the home screen. Returns false when
+ *  the launcher does not support pinning, in which case it has to be added by
+ *  hand from the widget drawer. */
+export function requestPinWidget(): boolean {
+  try {
+    return window.ToDoHomeAndroid?.pinWidget() ?? false
+  } catch {
+    return false
   }
 }

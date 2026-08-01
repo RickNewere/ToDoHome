@@ -557,6 +557,13 @@ code {
   text-align: center;
 }
 
+.foot__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
 .btn-ghost {
   min-height: 40px;
   padding: 0 18px;

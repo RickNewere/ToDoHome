@@ -28,3 +28,6 @@ android/captures/
 .idea/
 *.iml
 Thumbs.db
+
+# Supabase CLI scaricata in locale
+.tools/
