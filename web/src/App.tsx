@@ -6,7 +6,16 @@ import { useChores } from './hooks/useChores'
 import { MOOD_META } from './lib/chores'
 import { credentials, isConfigured } from './lib/supabase'
 import { isAndroidApp, requestPinWidget, syncConfigToWidget, syncUserToWidget } from './lib/bridge'
-import { PEOPLE, PERSON_LABEL, type ChoreView, type Person } from './lib/types'
+import ChoreEditor from './components/ChoreEditor'
+import {
+  EMPTY_DRAFT,
+  PEOPLE,
+  PERSON_LABEL,
+  draftFrom,
+  type ChoreDraft,
+  type ChoreView,
+  type Person,
+} from './lib/types'
 
 const STORAGE_KEY = 'todohome.person'
 
@@ -35,8 +44,22 @@ export default function App() {
   const [me, setMe] = usePerson()
   const [tab, setTab] = useState<Tab>('todo')
   const [online, setOnline] = useState(navigator.onLine)
-  const { groups, history, mood, loading, error, busy, toggle, reopen, reload, clearError } =
-    useChores(me)
+  const [editing, setEditing] = useState<ChoreDraft | null>(null)
+  const {
+    chores,
+    groups,
+    history,
+    mood,
+    loading,
+    error,
+    busy,
+    toggle,
+    reopen,
+    saveChore,
+    deleteChore,
+    reload,
+    clearError,
+  } = useChores(me)
 
   // The Android widget queries Supabase directly, so it needs the credentials
   // this build was compiled with.
@@ -61,6 +84,8 @@ export default function App() {
   const meta = MOOD_META[mood]
   const todoCount = groups.late.length + groups.due.length
 
+  const categories = [...new Set(chores.map((c) => c.category))].sort()
+
   const render = (chore: ChoreView, done = false) => (
     <ChoreCard
       key={chore.id}
@@ -69,6 +94,7 @@ export default function App() {
       busy={busy.has(chore.id)}
       onToggle={toggle}
       onReopen={reopen}
+      onEdit={(c) => setEditing(draftFrom(c))}
       done={done}
     />
   )
@@ -79,17 +105,28 @@ export default function App() {
         <div className="topbar__brand">
           <span aria-hidden="true">🏠</span> ToDoHome
         </div>
-        <div className="switcher" role="group" aria-label="Chi sta usando l’app">
-          {PEOPLE.map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={`switcher__btn${p === me ? ' switcher__btn--on' : ''}`}
-              onClick={() => setMe(p)}
-            >
-              {PERSON_LABEL[p]}
-            </button>
-          ))}
+        <div className="topbar__right">
+          <div className="switcher" role="group" aria-label="Chi sta usando l’app">
+            {PEOPLE.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`switcher__btn${p === me ? ' switcher__btn--on' : ''}`}
+                onClick={() => setMe(p)}
+              >
+                {PERSON_LABEL[p]}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="btn-add"
+            onClick={() => setEditing({ ...EMPTY_DRAFT })}
+            aria-label="Nuova faccenda"
+            title="Nuova faccenda"
+          >
+            +
+          </button>
         </div>
       </header>
 
@@ -197,6 +234,16 @@ export default function App() {
         </div>
         <p className="muted">Una faccenda è chiusa solo quando la spuntano entrambi.</p>
       </footer>
+
+      {editing && (
+        <ChoreEditor
+          draft={editing}
+          categories={categories}
+          onSave={saveChore}
+          onDelete={deleteChore}
+          onClose={() => setEditing(null)}
+        />
+      )}
 
       {error && (
         <div className="toast" role="alert">

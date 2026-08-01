@@ -43,3 +43,36 @@ export interface ChoreView extends ChoreStatusRow {
 }
 
 export type Mood = 'happy' | 'calm' | 'annoyed' | 'angry' | 'furious'
+
+/** What the editor form works on. `id` is null when creating a new chore. */
+export interface ChoreDraft {
+  id: string | null
+  name: string
+  emoji: string
+  category: string
+  cadenceDays: number
+  weekendOnly: boolean
+  note: string
+}
+
+export const EMPTY_DRAFT: ChoreDraft = {
+  id: null,
+  name: '',
+  emoji: '🏠',
+  category: 'Casa',
+  cadenceDays: 7,
+  weekendOnly: false,
+  note: '',
+}
+
+export function draftFrom(chore: ChoreStatusRow): ChoreDraft {
+  return {
+    id: chore.id,
+    name: chore.name,
+    emoji: chore.emoji,
+    category: chore.category,
+    cadenceDays: chore.cadence_days,
+    weekendOnly: chore.weekend_only,
+    note: chore.note ?? '',
+  }
+}

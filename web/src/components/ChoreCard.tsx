@@ -8,11 +8,20 @@ interface Props {
   busy: boolean
   onToggle: (chore: ChoreView) => void
   onReopen: (chore: ChoreView) => void
+  onEdit: (chore: ChoreView) => void
   /** Rendered in the "Fatte" group: shows the last completion instead of ticks. */
   done?: boolean
 }
 
-export default function ChoreCard({ chore, me, busy, onToggle, onReopen, done = false }: Props) {
+export default function ChoreCard({
+  chore,
+  me,
+  busy,
+  onToggle,
+  onReopen,
+  onEdit,
+  done = false,
+}: Props) {
   return (
     <article className={`card card--${chore.state}${busy ? ' card--busy' : ''}`}>
       <div className="card__head">
@@ -27,6 +36,14 @@ export default function ChoreCard({ chore, me, busy, onToggle, onReopen, done = 
             {chore.note ? ` · ${chore.note}` : ''}
           </p>
         </div>
+        <button
+          type="button"
+          className="card__edit"
+          onClick={() => onEdit(chore)}
+          aria-label={`Modifica ${chore.name}`}
+        >
+          ✎
+        </button>
       </div>
 
       {done ? (

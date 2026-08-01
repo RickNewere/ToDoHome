@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isConfigured, supabase } from '../lib/supabase'
 import { compareChores, computeMood, toView } from '../lib/chores'
 import { refreshWidget } from '../lib/bridge'
-import type { ChoreStatusRow, ChoreView, Person } from '../lib/types'
+import type { ChoreDraft, ChoreStatusRow, ChoreView, Person } from '../lib/types'
 
 export interface HistoryEntry {
   id: string
@@ -156,6 +156,59 @@ export function useChores(me: Person | null) {
     [load, loadHistory],
   )
 
+  /** Creates or updates a chore. Returns false when the save was rejected, so
+   *  the editor can stay open with the error visible. */
+  const saveChore = useCallback(
+    async (draft: ChoreDraft): Promise<boolean> => {
+      const payload = {
+        name: draft.name.trim(),
+        emoji: draft.emoji.trim() || '🏠',
+        category: draft.category.trim() || 'Casa',
+        cadence_days: draft.cadenceDays,
+        weekend_only: draft.weekendOnly,
+        note: draft.note.trim() || null,
+      }
+
+      const { error } = draft.id
+        ? await supabase.from('chores').update(payload).eq('id', draft.id)
+        : await supabase.from('chores').insert({
+            ...payload,
+            // Land at the bottom of the list.
+            sort_order: Math.max(0, ...rows.map((r) => r.sort_order)) + 10,
+          })
+
+      if (error) {
+        setError(
+          error.code === '23505'
+            ? 'Esiste già una faccenda con questo nome.'
+            : error.message,
+        )
+        return false
+      }
+
+      await load()
+      refreshWidget()
+      return true
+    },
+    [rows, load],
+  )
+
+  /** Removes a chore and, through the cascade, its history. */
+  const deleteChore = useCallback(
+    async (id: string): Promise<boolean> => {
+      const { error } = await supabase.from('chores').delete().eq('id', id)
+      if (error) {
+        setError(error.message)
+        return false
+      }
+      await load()
+      await loadHistory()
+      refreshWidget()
+      return true
+    },
+    [load, loadHistory],
+  )
+
   const chores = useMemo(() => rows.map(toView), [rows])
 
   const groups = useMemo(() => {
@@ -179,6 +232,8 @@ export function useChores(me: Person | null) {
     busy,
     toggle,
     reopen,
+    saveChore,
+    deleteChore,
     reload: load,
     clearError: () => setError(null),
   }
