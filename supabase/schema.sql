@@ -131,7 +131,14 @@ cross join lateral (
     select case
              when c.scheduled_on is not null then
                case
-                 when lastrun.completed_at is null then c.scheduled_on
+                 -- Never done yet. A yearly chore anchored to a day that has
+                 -- already gone by this year points at the next one instead of
+                 -- being born overdue; a one off keeps its date and shows late.
+                 when lastrun.completed_at is null then
+                   case
+                     when c.yearly then public.next_yearly(c.scheduled_on, today.d - 1)
+                     else c.scheduled_on
+                   end
                  when c.yearly then public.next_yearly(
                         c.scheduled_on,
                         (lastrun.completed_at at time zone 'Europe/Rome')::date
