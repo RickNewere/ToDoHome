@@ -168,8 +168,10 @@ Write-Host 'Scritto web\.env.local'
 
 # --- GitHub Actions secrets ------------------------------------------------
 
-$url  | gh secret set VITE_SUPABASE_URL      --repo $Repo | Out-Null
-$anon | gh secret set VITE_SUPABASE_ANON_KEY --repo $Repo | Out-Null
+# Passed as arguments, never piped: piping through Windows PowerShell prepends
+# a UTF-8 BOM to the value, which then travels into the built bundle.
+gh secret set VITE_SUPABASE_URL      --repo $Repo --body $url  | Out-Null
+gh secret set VITE_SUPABASE_ANON_KEY --repo $Repo --body $anon | Out-Null
 Write-Host "Secret impostati su $Repo"
 
 Write-Host ''

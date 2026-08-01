@@ -1,7 +1,18 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
-const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
+/** Strips surrounding whitespace and a leading byte order mark.
+ *
+ *  The BOM matters: a value that travels through a shell pipe on Windows can
+ *  pick one up, and the build minifier folds String.trim() at compile time with
+ *  a whitespace set that does not cover U+FEFF. The character then survives
+ *  into the bundle and makes new URL() throw, which used to leave the app
+ *  stuck on the setup screen with no clue why. */
+function clean(value: string | undefined): string | undefined {
+  return value?.replace(/^﻿/, '').trim()
+}
+
+const rawUrl = clean(import.meta.env.VITE_SUPABASE_URL)
+const rawKey = clean(import.meta.env.VITE_SUPABASE_ANON_KEY)
 
 function isHttpUrl(value: string | undefined): value is string {
   if (!value) return false
