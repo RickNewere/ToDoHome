@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # ToDoHome
 
 Gestione delle faccende domestiche condivise fra Riccardo e Roberta.
@@ -12,6 +16,46 @@ Nell'app ogni persona può toccare esclusivamente la propria casella.
 
 Se questa regola va cambiata, il punto da modificare è `supabase/schema.sql`,
 non i client.
+
+## Comandi
+
+Web, dalla cartella `web/`:
+
+```
+npm install
+npm run dev      # http://localhost:5173/ToDoHome/
+npm run build    # tsc -b poi vite build: è esattamente ciò che gira in CI
+npm run lint     # oxlint
+```
+
+`npm run build` va lanciato prima di ogni push. Il dev server non fa il
+type check completo, quindi un errore di tipi si manifesta solo in build ed è
+già successo di scoprirlo dalla CI invece che in locale.
+
+Android, dalla cartella `android/`:
+
+```
+gradlew.bat assembleRelease
+gradlew.bat assembleDebug -PTODOHOME_URL=http://<ip-del-pc>:5173/ToDoHome/
+adb install -r app\build\outputs\apk\release\app-release.apk
+```
+
+La release è firmata con la chiave di debug apposta: l'app si installa a mano su
+due telefoni e non passa dal Play Store.
+
+Non esiste nessuna suite di test automatici. Le verifiche si fanno contro il
+progetto Supabase vero via PostgREST e sul telefono via adb. Per costringere il
+widget a ridisegnarsi senza aspettare la mezz'ora:
+
+```
+adb shell am broadcast -n it.ricknewere.todohome/.widget.ChoreWidgetProvider -a it.ricknewere.todohome.ACTION_REFRESH
+```
+
+## Modifiche
+
+Quando si tocca il codice o si aggiunge qualcosa, elencare a Riccardo le
+modifiche fatte: quali file, cosa è cambiato e perché. Non basta dire che è
+fatto.
 
 ## Struttura
 
@@ -45,8 +89,24 @@ l'ultimo giro chiuso e lo riapre azzerando la spunta di chi ha annullato, così
 la faccenda torna da fare conservando la conferma dell'altro. Sta in
 `untickCompleted` dentro `useChores`.
 
+La colonna `category` esiste ancora in `chores` e in `ChoreDraft`, con default
+`Casa`: è stato tolto solo il campo dal form. Chi la rimuove davvero deve
+toccare schema, seed, tipi e `saveChore` insieme.
+
 RLS aperta al ruolo `anon`: l'app è pubblica su GitHub Pages e la anon key sta
 nel bundle. Non ci sono dati personali oltre ai nomi delle faccende.
+
+## Credenziali
+
+La webapp legge `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` da
+`web/.env.local` in locale e dai secret omonimi in CI. Sono gli unici due valori
+di configurazione dell'intero progetto.
+
+`web/src/lib/supabase.ts` toglie il BOM e verifica che l'URL sia parsabile prima
+di dichiarare la app configurata. Non è difensivismo inutile: un BOM finito
+dentro il secret di GitHub ha già prodotto una pagina bianca in produzione,
+perché `new URL()` sollevava e `isConfigured` restava falso senza dirlo. Quel
+controllo va lasciato dov'è.
 
 ## Mascotte
 
