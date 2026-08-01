@@ -5,16 +5,13 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
  *  The BOM matters: a value that travels through a shell pipe on Windows can
  *  pick one up, and the build minifier folds String.trim() at compile time with
  *  a whitespace set that does not cover U+FEFF. The character then survives
- *  into the bundle and makes new URL() throw, which used to leave the app
- *  stuck on the setup screen with no clue why. */
-function clean(value: string | undefined): string | undefined {
-  return value?.replace(/^﻿/, '').trim()
+ *  into the bundle and makes new URL() throw, which left the app stuck on the
+ *  setup screen with no visible cause. */
+function clean(value: string | undefined): string {
+  return (value ?? '').replace(/^﻿/, '').trim()
 }
 
-const rawUrl = clean(import.meta.env.VITE_SUPABASE_URL)
-const rawKey = clean(import.meta.env.VITE_SUPABASE_ANON_KEY)
-
-function isHttpUrl(value: string | undefined): value is string {
+function isHttpUrl(value: string): boolean {
   if (!value) return false
   try {
     const { protocol } = new URL(value)
@@ -24,14 +21,17 @@ function isHttpUrl(value: string | undefined): value is string {
   }
 }
 
+const configuredUrl = clean(import.meta.env.VITE_SUPABASE_URL)
+const configuredKey = clean(import.meta.env.VITE_SUPABASE_ANON_KEY)
+
 /** False when the build has no usable Supabase credentials. The check is on the
  *  shape of the URL, not just on it being non empty: createClient throws on a
  *  malformed one, which would blank the whole app instead of showing the setup
  *  screen. */
-export const isConfigured = isHttpUrl(rawUrl) && Boolean(rawKey)
+export const isConfigured = isHttpUrl(configuredUrl) && configuredKey.length > 0
 
-const url = isConfigured ? rawUrl : 'https://placeholder.supabase.co'
-const anonKey = isConfigured ? rawKey! : 'placeholder'
+const url = isConfigured ? configuredUrl : 'https://placeholder.supabase.co'
+const anonKey = isConfigured ? configuredKey : 'placeholder'
 
 /** Passed to the Android widget through the bridge so it can query on its own. */
 export const credentials = { url, anonKey }
