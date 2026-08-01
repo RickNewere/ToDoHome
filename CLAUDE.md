@@ -93,6 +93,12 @@ che una riga si sposti sotto il dito mentre la si tocca.
 L'umore di Casimiro invece resta sullo stato della casa, non su quello
 personale.
 
+Il numero di righe lo calcola `rowsFor` dall'altezza del widget. Il launcher
+comunica i limiti per entrambi gli orientamenti insieme, perché la rotazione non
+genera un aggiornamento: `OPTION_APPWIDGET_MIN_HEIGHT` è l'altezza da
+orizzontale, `OPTION_APPWIDGET_MAX_HEIGHT` quella da verticale. Leggendo il
+minimo in verticale il widget mostrava una riga sola lasciando il resto vuoto.
+
 `TODOHOME_URL` in `gradle.properties` decide cosa carica la WebView. Per provare
 contro il dev server:
 

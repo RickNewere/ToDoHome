@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Color
 import android.view.View
 import android.widget.RemoteViews
@@ -64,7 +65,7 @@ object WidgetRenderer {
         chores: List<ChoreStatus>,
     ) {
         ids.forEach { id ->
-            manager.updateAppWidget(id, buildView(context, chores, rowsFor(manager, id)))
+            manager.updateAppWidget(id, buildView(context, chores, rowsFor(context, manager, id)))
         }
     }
 
@@ -124,11 +125,27 @@ object WidgetRenderer {
         return cached
     }
 
-    /** Rows that fit in the current widget height. */
-    private fun rowsFor(manager: AppWidgetManager, id: Int): Int {
-        val minHeightDp = manager.getAppWidgetOptions(id)
-            .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
-        return ((minHeightDp - CHROME_DP) / ROW_DP).coerceIn(1, 6)
+    /**
+     * Rows that fit in the current widget height.
+     *
+     * The launcher reports the bounds for both orientations at once, because a
+     * rotation does not trigger a widget update: the lower bound is the height
+     * in landscape, the upper bound the height in portrait. Reading the lower
+     * bound in portrait understates the space by more than half and leaves the
+     * widget nearly empty.
+     */
+    private fun rowsFor(context: Context, manager: AppWidgetManager, id: Int): Int {
+        val options = manager.getAppWidgetOptions(id)
+        val landscape =
+            context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val key = if (landscape) {
+            AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT
+        } else {
+            AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT
+        }
+        val heightDp = options.getInt(key, 0).takeIf { it > 0 }
+            ?: options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 110)
+        return ((heightDp - CHROME_DP) / ROW_DP).coerceIn(1, 6)
     }
 
     private fun buildView(context: Context, chores: List<ChoreStatus>, maxRows: Int): RemoteViews {
