@@ -116,10 +116,19 @@ Cosa fa il widget:
 Si fa direttamente dall'app, senza passare da Supabase:
 
 - Il **+** in alto a destra crea una faccenda nuova.
-- La **matita** su una scheda la apre in modifica: nome, icona, categoria, ogni
-  quanto torna, se è un lavoro da weekend e la nota.
+- La **matita** su una scheda la apre in modifica: nome, icona, ogni quanto
+  torna, se è un lavoro da weekend e la nota.
 - Nello stesso pannello c'è **Elimina**, che chiede una seconda conferma.
   Eliminare una faccenda cancella anche il suo storico.
+
+## 7. Le tre schede
+
+- **Da fare**: quello che è in ritardo o scade oggi.
+- **Fatte**: le faccende chiuse da entrambi, con la data in cui sono state
+  fatte e quando torneranno. Togliendo la tua spunta la faccenda rientra
+  subito fra quelle da fare, conservando la spunta dell'altro. Sotto c'è lo
+  storico dei completamenti.
+- **Tutte**: l'elenco completo raggruppato per stato.
 
 Se preferisci lavorare sui dati grezzi, la tabella è `chores` nel **Table
 Editor** di Supabase. Lì c'è anche `active`: mettila a `false` per togliere una

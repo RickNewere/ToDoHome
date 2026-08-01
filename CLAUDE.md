@@ -34,6 +34,17 @@ non i client.
   discordare su cosa è in ritardo.
 - RPC `toggle_check(chore_id, user)` e `reopen_last(chore_id)`.
 
+Ciclicità verificata: una faccenda con cadenza 3 completata oggi scade fra 3
+giorni, al terzo giorno risulta `days_late = 0` e torna fra quelle da fare, al
+quarto è in ritardo di 1. Con `weekend_only`, se la scadenza calcolata cade
+infrasettimanale slitta al primo sabato utile; se cade già di sabato o domenica
+resta lì.
+
+L'annullamento dalla scheda "Fatte" non passa da `reopen_last`: il client cerca
+l'ultimo giro chiuso e lo riapre azzerando la spunta di chi ha annullato, così
+la faccenda torna da fare conservando la conferma dell'altro. Sta in
+`untickCompleted` dentro `useChores`.
+
 RLS aperta al ruolo `anon`: l'app è pubblica su GitHub Pages e la anon key sta
 nel bundle. Non ci sono dati personali oltre ai nomi delle faccende.
 

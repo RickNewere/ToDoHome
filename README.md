@@ -24,6 +24,12 @@ cleaning the bathroom or the kitchen, always land on a Saturday or Sunday.
 **A clear picture of what is late.** The list is grouped into late, due today
 and on track. Anything overdue shows how many days it has been sitting there.
 
+**A done list you can walk back.** The second tab holds everything closed by
+both of you, each showing when it was done and when it comes back. Both ticks
+are there in green: remove yours and the chore returns to the to-do list right
+away, still carrying the other person's confirmation. Underneath is a log of
+recent completions, so you can see when something was really last done.
+
 **Casimiro, the house mascot.** A little house with a face that reflects the
 state of the home. He is calm when everything is under control, annoyed when one
 chore slips, angry when several are late, and furious, steaming from the chimney
@@ -31,9 +37,9 @@ with a vein popping, when the place is falling apart.
 
 **Editing the list.** The chores that ship with the app are only a starting
 point. The plus button in the header creates a new one, and the pencil on any
-card opens it for editing: name, icon, category, how often it comes back,
-whether it is a weekend job, and a note. The same panel deletes it, behind a
-second tap for confirmation.
+card opens it for editing: name, icon, how often it comes back, whether it is a
+weekend job, and a note. The same panel deletes it, behind a second tap for
+confirmation.
 
 **Android widget.** The mascot sits on the home screen with your own pending
 chores underneath. Each row shows how late it is and whether the other person
