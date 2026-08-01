@@ -39,8 +39,12 @@ export default function ChoreEditor({ draft, onSave, onDelete, onClose }: Props)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const set = <K extends keyof ChoreDraft>(key: K, value: ChoreDraft[K]) =>
+  const set = <K extends keyof ChoreDraft>(key: K, value: ChoreDraft[K]) => {
+    // Editing again means the delete was not what was wanted: disarm it, so a
+    // second tap on that button cannot remove the chore by surprise.
+    setConfirmDelete(false)
     setForm((f) => ({ ...f, [key]: value }))
+  }
 
   const save = async () => {
     if (!form.name.trim()) return
@@ -81,7 +85,9 @@ export default function ChoreEditor({ draft, onSave, onDelete, onClose }: Props)
               <input
                 className="input input--emoji"
                 value={form.emoji}
-                maxLength={4}
+                // Emoji built from several code points, like 🧑‍🍳, run past four
+                // UTF-16 units: cutting there leaves half a character behind.
+                maxLength={12}
                 onChange={(e) => set('emoji', e.target.value)}
               />
             </label>

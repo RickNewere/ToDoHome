@@ -43,9 +43,39 @@ adb install -r app\build\outputs\apk\release\app-release.apk
 La release è firmata con la chiave di debug apposta: l'app si installa a mano su
 due telefoni e non passa dal Play Store.
 
+### SQL sul database remoto
+
+Non serve nessun access token: bastano la CLI in `.tools/supabase.exe` e la
+password in `.supabase-db-password`, entrambe già sul PC.
+
+```
+.tools/supabase.exe db query "<sql>" --db-url \
+  "postgresql://postgres.<ref>:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres" \
+  --dns-resolver https
+```
+
+Il `<ref>` è il sottodominio dentro `VITE_SUPABASE_URL`. Il pooler risponde su
+IPv4, l'host diretto `db.<ref>.supabase.co` no, quindi usare il pooler.
+
+Due trappole:
+
+- La CLI **esce con codice 0 anche quando Postgres rifiuta la query**. L'errore
+  sta solo nel JSON di risposta, come `"_tag":"Error"`. Va letto il corpo, non
+  il codice di uscita.
+- `--file` manda tutto il contenuto come una prepared statement sola, quindi
+  `schema.sql` intero fallisce con `cannot insert multiple commands into a
+  prepared statement`. Va passata una istruzione per volta.
+
+Ogni script che tocca quella password deve filtrare il proprio output prima di
+stamparlo.
+
+### Test
+
 Non esiste nessuna suite di test automatici. Le verifiche si fanno contro il
-progetto Supabase vero via PostgREST e sul telefono via adb. Per costringere il
-widget a ridisegnarsi senza aspettare la mezz'ora:
+progetto Supabase vero e sul telefono via adb. Le prove che scrivono dati vanno
+fatte su una faccenda usa e getta, creata e cancellata dallo script, mai sulle
+faccende di casa. Per costringere il widget a ridisegnarsi senza aspettare la
+mezz'ora:
 
 ```
 adb shell am broadcast -n it.ricknewere.todohome/.widget.ChoreWidgetProvider -a it.ricknewere.todohome.ACTION_REFRESH
