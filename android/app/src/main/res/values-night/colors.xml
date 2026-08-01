@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_bg">#0A1020</color>
+
+    <color name="widget_bg">#141D31</color>
+    <color name="widget_text">#E6EDF7</color>
+    <color name="widget_dim">#93A3BA</color>
+    <color name="widget_border">#29364C</color>
+
+    <color name="widget_late">#F87171</color>
+    <color name="widget_due">#FBBF24</color>
+    <color name="widget_ok">#4ADE80</color>
+
+    <color name="tick_off_stroke">#64748B</color>
+</resources>

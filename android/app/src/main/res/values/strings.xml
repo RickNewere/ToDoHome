@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ToDoHome</string>
+    <string name="widget_label">ToDoHome</string>
+    <string name="widget_description">Casimiro si arrabbia quando le faccende sono in ritardo.</string>
+    <string name="widget_mascot">Casimiro, la mascotte di casa</string>
+</resources>

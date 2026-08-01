@@ -1,0 +1,28 @@
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environment: never commit real credentials
+.env
+.env.local
+.env.*.local
+
+# Android
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/.cxx/
+android/captures/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Editors and OS
+.DS_Store
+.idea/
+*.iml
+Thumbs.db

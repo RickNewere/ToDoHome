@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_bg">#EEF2F7</color>
+
+    <color name="widget_bg">#FFFFFF</color>
+    <color name="widget_text">#0F172A</color>
+    <color name="widget_dim">#64748B</color>
+    <color name="widget_border">#DDE5EF</color>
+
+    <color name="widget_late">#DC2626</color>
+    <color name="widget_due">#B45309</color>
+    <color name="widget_ok">#16A34A</color>
+
+    <color name="tick_off_stroke">#94A3B8</color>
+    <color name="ic_launcher_bg">#DBEAFE</color>
+</resources>
