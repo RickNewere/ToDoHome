@@ -127,6 +127,19 @@ fatto.
 La vista costruisce `due_date` in tre passaggi incatenati, `raw` poi `shifted`
 poi `due`: la data chiesta dalla regola della faccenda, poi lo spostamento al
 weekend dove vale, poi l'eventuale rinvio.
+
+Il rinvio si fa scorrendo la scheda verso destra, non con un pulsante. Il gesto
+sta in `web/src/hooks/useSwipeRight.ts`, con `decideAxis` e `travel` esportate
+apposta perché siano collaudabili senza un dito vero. Due regole non ovvie: in
+diagonale vince sempre lo scorrimento verticale (una lista che smette di
+scorrere dà più fastidio di un rinvio da ripetere), e `swallowedClick` controlla
+anche `enabled`, perché un rinvio può essere proprio quello che consuma
+l'ultimo tentativo e da lì in poi non arriva più nessun `pointerdown` ad
+abbassare il flag.
+
+`reload` ricarica lista, storico e serie insieme. Prima ricaricava solo la
+lista: il pulsante "Aggiorna" sembrava rotto perché non cambiava niente a
+schermo e le altre schede restavano vecchie.
 - `chore_runs`: un giro aperto per faccenda, con le due spunte e
   `completed_at`. Un indice unico parziale su `chore_id where completed_at is
   null` impedisce che due telefoni creino giri doppi.

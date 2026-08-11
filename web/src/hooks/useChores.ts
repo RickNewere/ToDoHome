@@ -280,6 +280,13 @@ export function useChores(me: Person | null) {
     [load, loadHistory],
   )
 
+  /** Everything the screen shows, not just the chore list. The button that
+   *  calls this used to reload only the list, so the done tab, the log and the
+   *  streak stayed as they were and it looked like nothing had happened. */
+  const reload = useCallback(async () => {
+    await Promise.all([load(), loadHistory(), touchStreak()])
+  }, [load, loadHistory, touchStreak])
+
   const chores = useMemo(() => rows.map(toView), [rows])
 
   const groups = useMemo(() => {
@@ -309,7 +316,7 @@ export function useChores(me: Person | null) {
     untickCompleted,
     saveChore,
     deleteChore,
-    reload: load,
+    reload,
     clearError: () => setError(null),
   }
 }

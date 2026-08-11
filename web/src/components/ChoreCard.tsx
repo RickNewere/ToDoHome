@@ -1,5 +1,6 @@
 import Casimiro from './Mascot'
 import { cadenceLabel, dueLabel, formatDate } from '../lib/chores'
+import { useSwipeRight } from '../hooks/useSwipeRight'
 import { MAX_POSTPONES, PERSON_LABEL, PEOPLE, type ChoreView, type Person } from '../lib/types'
 
 interface Props {
@@ -36,10 +37,41 @@ export default function ChoreCard({
   // neither of you has ticked it: moving the deadline out from under a
   // confirmation that is already in would waste the other person's tick.
   const canPostpone =
-    !done && chore.state !== 'upcoming' && left > 0 && chore.waitingFor.length === PEOPLE.length
+    !done &&
+    !busy &&
+    chore.state !== 'upcoming' &&
+    left > 0 &&
+    chore.waitingFor.length === PEOPLE.length
+
+  const swipe = useSwipeRight({
+    enabled: canPostpone,
+    onTrigger: () => onPostpone(chore),
+  })
 
   return (
-    <article className={`card card--${done ? 'done' : chore.state}${busy ? ' card--busy' : ''}`}>
+    <div className="swipe">
+      {canPostpone && swipe.dragging && (
+        <div className="swipe__behind" aria-hidden="true">
+          <span
+            className={`swipe__badge${swipe.progress >= 1 ? ' swipe__badge--armed' : ''}`}
+            style={{ opacity: Math.max(0.4, swipe.progress) }}
+          >
+            {swipe.progress >= 1 ? 'Rimanda a domani ✓' : 'Rimanda a domani'}
+          </span>
+        </div>
+      )}
+
+      <article
+        className={`card card--${done ? 'done' : chore.state}${busy ? ' card--busy' : ''}${
+          canPostpone ? ' card--swipeable' : ''
+        }`}
+        style={
+          swipe.offset > 0
+            ? { transform: `translateX(${swipe.offset}px)`, transition: 'none' }
+            : undefined
+        }
+        {...swipe.handlers}
+      >
       <div className="card__head">
         <span className="card__emoji" aria-hidden="true">
           {chore.emoji}
@@ -55,32 +87,17 @@ export default function ChoreCard({
             {!done && chore.postpone_count > 0 ? ` · rimandata ${chore.postpone_count}×` : ''}
           </p>
         </div>
-        <div className="card__actions">
-          {canPostpone && (
-            <button
-              type="button"
-              className="card__snooze"
-              onClick={() => onPostpone(chore)}
-              disabled={busy}
-              aria-label={`Rimanda ${chore.name} a domani`}
-              title={
-                left === 1
-                  ? 'Rimanda a domani. È l’ultima volta che puoi'
-                  : 'Rimanda a domani'
-              }
-            >
-              +1g
-            </button>
-          )}
-          <button
-            type="button"
-            className="card__edit"
-            onClick={() => onEdit(chore)}
-            aria-label={`Modifica ${chore.name}`}
-          >
-            ✎
-          </button>
-        </div>
+        <button
+          type="button"
+          className="card__edit"
+          onClick={() => {
+            if (swipe.swallowedClick()) return
+            onEdit(chore)
+          }}
+          aria-label={`Modifica ${chore.name}`}
+        >
+          ✎
+        </button>
       </div>
 
       <div className="card__ticks">
@@ -95,6 +112,8 @@ export default function ChoreCard({
               className={`tick${checked ? ' tick--on' : ''}${mine ? ' tick--mine' : ''}`}
               onClick={() => {
                 if (!mine) return
+                // A drag that ended on this button is a swipe, not a tick.
+                if (swipe.swallowedClick()) return
                 if (done) onUntick(chore)
                 else onToggle(chore)
               }}
@@ -115,8 +134,9 @@ export default function ChoreCard({
             </button>
           )
         })}
-      </div>
-    </article>
+        </div>
+      </article>
+    </div>
   )
 }
 

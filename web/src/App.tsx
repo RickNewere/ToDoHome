@@ -9,6 +9,7 @@ import { isAndroidApp, requestPinWidget, syncConfigToWidget, syncUserToWidget } 
 import ChoreEditor from './components/ChoreEditor'
 import {
   EMPTY_DRAFT,
+  MAX_POSTPONES,
   PEOPLE,
   PERSON_LABEL,
   draftFrom,
@@ -40,11 +41,17 @@ function usePerson(): [Person | null, (p: Person) => void] {
   return [person, pick]
 }
 
+const SWIPE_HINT_KEY = 'todohome.swipeHintSeen'
+
 export default function App() {
   const [me, setMe] = usePerson()
   const [tab, setTab] = useState<Tab>('todo')
   const [online, setOnline] = useState(navigator.onLine)
   const [editing, setEditing] = useState<ChoreDraft | null>(null)
+  const [refreshState, setRefreshState] = useState<'idle' | 'working' | 'done'>('idle')
+  // A gesture nobody knows about is a feature nobody has. The hint goes away
+  // for good once a chore has actually been swiped.
+  const [swipeHint, setSwipeHint] = useState(() => localStorage.getItem(SWIPE_HINT_KEY) === null)
   const {
     groups,
     history,
@@ -84,6 +91,21 @@ export default function App() {
 
   const meta = MOOD_META[mood]
   const todoCount = groups.late.length + groups.due.length
+  const canSwipeAny = [...groups.late, ...groups.due].some(
+    (c) => c.postpone_count < MAX_POSTPONES && c.waitingFor.length === PEOPLE.length,
+  )
+
+  const refresh = async () => {
+    setRefreshState('working')
+    await reload()
+    setRefreshState('done')
+    setTimeout(() => setRefreshState('idle'), 1200)
+  }
+
+  const dismissHint = () => {
+    localStorage.setItem(SWIPE_HINT_KEY, '1')
+    setSwipeHint(false)
+  }
 
   const render = (chore: ChoreView, done = false) => (
     <ChoreCard
@@ -92,7 +114,10 @@ export default function App() {
       me={me}
       busy={busy.has(chore.id)}
       onToggle={toggle}
-      onPostpone={postpone}
+      onPostpone={(c) => {
+        dismissHint()
+        postpone(c)
+      }}
       onUntick={untickCompleted}
       onEdit={(c) => setEditing(draftFrom(c))}
       done={done}
@@ -175,6 +200,14 @@ export default function App() {
             />
           ) : (
             <>
+              {swipeHint && canSwipeAny && (
+                <p className="hint hint--swipe">
+                  Scorri una faccenda verso destra per rimandarla a domani.
+                  <button type="button" onClick={dismissHint} aria-label="Ho capito">
+                    ✕
+                  </button>
+                </p>
+              )}
               <Group title="In ritardo" n={groups.late.length}>
                 {groups.late.map((c) => render(c))}
               </Group>
@@ -244,8 +277,15 @@ export default function App() {
 
       <footer className="foot">
         <div className="foot__buttons">
-          <button type="button" className="btn-ghost" onClick={() => void reload()}>
-            Aggiorna
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => void refresh()}
+            disabled={refreshState !== 'idle'}
+          >
+            {refreshState === 'idle' && 'Aggiorna'}
+            {refreshState === 'working' && 'Aggiorno…'}
+            {refreshState === 'done' && 'Aggiornato ✓'}
           </button>
           {isAndroidApp() && (
             <button type="button" className="btn-ghost" onClick={() => requestPinWidget()}>

@@ -146,16 +146,20 @@ Si fa direttamente dall'app, senza passare da Supabase:
 
 ## 7. Rimandare una faccenda
 
-Sulle faccende in ritardo o in scadenza oggi compare **+1g** accanto alla
-matita: sposta la scadenza di un giorno senza segnarla fatta e senza mettere
-nessuna spunta.
+**Scorri la faccenda verso destra** e la scadenza si sposta di un giorno, senza
+segnarla fatta e senza mettere nessuna spunta. Mentre trascini compare la
+scritta "Rimanda a domani": se lasci prima che diventi verde non succede niente.
 
-Si può fare **due volte per ciclo**, poi il pulsante sparisce e la faccenda va
-fatta. Il conteggio riparte da zero quando la spuntate entrambi. Sotto il nome
-compare "rimandata 1×" così si vede quante volte è già slittata.
+Si può fare **due volte per ciclo**, poi lo scorrimento non risponde più e la
+faccenda va fatta. Il conteggio riparte da zero quando la spuntate entrambi.
+Sotto il nome compare "rimandata 1×" così si vede quante volte è già slittata.
 
-Il pulsante non c'è se uno dei due ha già spuntato: spostare la scadenza a quel
-punto sprecherebbe la conferma dell'altro.
+Lo scorrimento non funziona se uno dei due ha già spuntato: spostare la scadenza
+a quel punto sprecherebbe la conferma dell'altro. Non funziona nemmeno sulle
+faccende che non scadono ancora.
+
+Trascinare in verticale continua a scorrere la lista come sempre: il gesto parte
+solo se il movimento è chiaramente orizzontale e verso destra.
 
 ## 8. La serie senza ritardi
 

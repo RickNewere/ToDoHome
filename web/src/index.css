@@ -125,31 +125,38 @@ code {
   font-weight: 400;
 }
 
-.card__actions {
+.swipe {
+  position: relative;
+}
+
+/* Sits behind the card and is only visible through the gap the card leaves as
+   it slides right. Bottom inset matches the card's own margin. */
+.swipe__behind {
+  position: absolute;
+  inset: 0 0 9px 0;
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex: none;
+  padding-left: 17px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--due) 20%, var(--surface));
+  pointer-events: none;
 }
 
-.card__snooze {
-  min-height: 30px;
-  padding: 0 9px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--dim);
-  font-size: 12px;
+.swipe__badge {
+  font-size: 13px;
   font-weight: 700;
-  font-family: inherit;
+  color: var(--due);
+  white-space: nowrap;
 }
 
-.card__snooze:active {
-  transform: scale(0.94);
+.swipe__badge--armed {
+  color: var(--ok);
 }
 
-.card__snooze:disabled {
-  opacity: 0.4;
+.card--swipeable {
+  /* The browser keeps vertical scrolling, the sideways drag is ours. */
+  touch-action: pan-y;
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.15s;
 }
 
 .topbar__right {
@@ -346,6 +353,25 @@ code {
   color: var(--dim);
 }
 
+.hint--swipe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 2px 4px;
+  padding: 9px 6px 9px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.hint--swipe button {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
 /* Completed chores read as settled, not as something still on the list. */
 .card--done {
   border-left-color: var(--ok);
@@ -383,6 +409,8 @@ code {
 }
 
 .card {
+  /* Relative so it paints over the swipe reveal, which is absolute. */
+  position: relative;
   margin-bottom: 9px;
   padding: 13px 14px;
   background: var(--surface);

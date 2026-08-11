@@ -31,8 +31,8 @@ after its day has passed points at next year rather than showing up late.
 **A clear picture of what is late.** The list is grouped into late, due today
 and on track. Anything overdue shows how many days it has been sitting there.
 
-**Put something off, honestly.** A chore you cannot get to today can be pushed
-one day out, without pretending it is done and without either tick going in.
+**Put something off, honestly.** Swipe a chore to the right and its deadline
+moves a day, without pretending it is done and without either tick going in.
 Twice per cycle is the limit: after that the answer is no, so postponing cannot
 quietly become a way of never doing anything.
 
