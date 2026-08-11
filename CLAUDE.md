@@ -108,6 +108,10 @@ fatto.
   nascere in ritardo. Una una-tantum già fatta viene parcheggiata su
   `9999-12-31`: resta fra le "Fatte", dove si può ancora annullare, e la scheda
   scrive "Non torna più" invece di quella data finta.
+- Su una faccenda a data fissa, un giro aperto tira la scadenza a oggi. Serve
+  all'annullamento dalla scheda "Fatte": tolta la spunta la faccenda non risulta
+  più completata, e senza questa regola una annuale finiva dritta all'anno
+  prossimo invece di tornare fra quelle da fare.
 - `chore_runs`: un giro aperto per faccenda, con le due spunte e
   `completed_at`. Un indice unico parziale su `chore_id where completed_at is
   null` impedisce che due telefoni creino giri doppi.

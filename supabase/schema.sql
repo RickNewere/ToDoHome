@@ -131,6 +131,18 @@ cross join lateral (
     select case
              when c.scheduled_on is not null then
                case
+                 -- An open run means the cycle is live: someone has ticked it,
+                 -- or the completion was undone from the done list. Either way
+                 -- it belongs on the to do list, never a year out. Without this
+                 -- an undone yearly chore quietly jumped to the next
+                 -- anniversary instead of coming back.
+                 when openrun.id is not null then least(
+                   case
+                     when c.yearly then public.next_yearly(c.scheduled_on, today.d - 1)
+                     else c.scheduled_on
+                   end,
+                   today.d
+                 )
                  -- Never done yet. A yearly chore anchored to a day that has
                  -- already gone by this year points at the next one instead of
                  -- being born overdue; a one off keeps its date and shows late.
