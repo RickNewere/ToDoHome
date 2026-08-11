@@ -48,11 +48,13 @@ export default function App() {
   const {
     groups,
     history,
+    streak,
     mood,
     loading,
     error,
     busy,
     toggle,
+    postpone,
     untickCompleted,
     saveChore,
     deleteChore,
@@ -90,6 +92,7 @@ export default function App() {
       me={me}
       busy={busy.has(chore.id)}
       onToggle={toggle}
+      onPostpone={postpone}
       onUntick={untickCompleted}
       onEdit={(c) => setEditing(draftFrom(c))}
       done={done}
@@ -139,6 +142,7 @@ export default function App() {
         <div className="mood__text">
           <h1 className="mood__title">{meta.title}</h1>
           <p className="mood__line">{meta.line}</p>
+          {streak && <StreakLine streak={streak.streak} best={streak.best} />}
         </div>
         <div className="mood__stats">
           <Stat n={groups.late.length} label="in ritardo" tone="late" />
@@ -270,6 +274,31 @@ export default function App() {
         </div>
       )}
     </div>
+  )
+}
+
+/** Milestones worth a word. Past the last one the flame speaks for itself. */
+const MILESTONES = [7, 14, 30, 60, 100, 365]
+
+function StreakLine({ streak, best }: { streak: number; best: number }) {
+  if (streak === 0) {
+    return best > 0 ? (
+      <p className="streak streak--broken">
+        Serie interrotta. Il record resta {best} {best === 1 ? 'giorno' : 'giorni'}.
+      </p>
+    ) : null
+  }
+
+  const hit = MILESTONES.includes(streak)
+  const record = streak >= best && streak > 1
+  return (
+    <p className={`streak${hit ? ' streak--milestone' : ''}`}>
+      <span aria-hidden="true">🔥</span> {streak} {streak === 1 ? 'giorno' : 'giorni'} senza
+      ritardi
+      {hit && ' · traguardo!'}
+      {!hit && record && ' · è il vostro record'}
+      {!hit && !record && best > streak && ` · record ${best}`}
+    </p>
   )
 }
 

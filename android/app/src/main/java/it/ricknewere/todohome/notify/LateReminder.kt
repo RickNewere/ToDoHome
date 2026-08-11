@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -32,22 +33,35 @@ object LateReminder {
     private const val CHANNEL_ID = "late"
     private const val NOTIFICATION_ID = 1
     private const val REQUEST_CODE = 42
+    private const val REQUEST_SYNC = 43
 
     /** Hour of day the reminder goes out. */
     const val HOUR = 9
 
-    /** Puts the daily alarm in place, replacing any previous one.
+    /** Puts both alarms in place, replacing any previous ones.
      *
      *  Inexact on purpose: an exact alarm needs a special permission on recent
      *  Android and would be a heavy hammer for a reminder that only has to
      *  arrive some time in the morning. */
     fun schedule(context: Context) {
         val alarms = context.getSystemService(AlarmManager::class.java) ?: return
+
         alarms.setInexactRepeating(
             AlarmManager.RTC_WAKEUP,
             nextRun(),
             AlarmManager.INTERVAL_DAY,
             alarmIntent(context),
+        )
+
+        // Half hourly re-read, which is what spots the other person's tick.
+        // ELAPSED_REALTIME rather than the wakeup variant: a confirmation can
+        // wait until the phone is awake anyway, and this way it costs nothing
+        // while the phone sits in a pocket.
+        alarms.setInexactRepeating(
+            AlarmManager.ELAPSED_REALTIME,
+            SystemClock.elapsedRealtime() + AlarmManager.INTERVAL_HALF_HOUR,
+            AlarmManager.INTERVAL_HALF_HOUR,
+            syncIntent(context),
         )
     }
 
@@ -161,6 +175,13 @@ object LateReminder {
         context,
         REQUEST_CODE,
         Intent(context, ReminderReceiver::class.java).setAction(ReminderReceiver.ACTION_CHECK),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    private fun syncIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        REQUEST_SYNC,
+        Intent(context, ReminderReceiver::class.java).setAction(ReminderReceiver.ACTION_SYNC),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 }

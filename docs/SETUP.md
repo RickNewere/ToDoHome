@@ -115,10 +115,15 @@ Cosa fa il widget:
 
 ### Notifiche
 
-Al primo avvio l'app chiede il permesso di mandare notifiche. Da lì in poi, ogni
-mattina alle 9, se qualcosa che **tu** non hai ancora spuntato è in ritardo,
-arriva un promemoria con l'elenco. Se hai già fatto la tua parte non ti disturba,
-e non ne manda più di una al giorno.
+Al primo avvio l'app chiede il permesso di mandare notifiche. Ne manda di due
+tipi, che si possono accendere e spegnere separatamente:
+
+- **Faccende in ritardo**: ogni mattina alle 9, se qualcosa che **tu** non hai
+  ancora spuntato è in ritardo. Se hai già fatto la tua parte non ti disturba, e
+  non ne arriva più di una al giorno.
+- **Da confermare**: quando l'altra persona spunta qualcosa che aspetta la tua
+  conferma. Serve perché una faccenda si chiude solo con tutte e due le spunte,
+  e senza avviso la seconda dipende dal caso.
 
 Per spegnerle basta il pannello di Android: **Impostazioni** > **App** >
 **ToDoHome** > **Notifiche**.
@@ -139,7 +144,25 @@ Si fa direttamente dall'app, senza passare da Supabase:
 - Nello stesso pannello c'è **Elimina**, che chiede una seconda conferma.
   Eliminare una faccenda cancella anche il suo storico.
 
-## 7. Le tre schede
+## 7. Rimandare una faccenda
+
+Sulle faccende in ritardo o in scadenza oggi compare **+1g** accanto alla
+matita: sposta la scadenza di un giorno senza segnarla fatta e senza mettere
+nessuna spunta.
+
+Si può fare **due volte per ciclo**, poi il pulsante sparisce e la faccenda va
+fatta. Il conteggio riparte da zero quando la spuntate entrambi. Sotto il nome
+compare "rimandata 1×" così si vede quante volte è già slittata.
+
+Il pulsante non c'è se uno dei due ha già spuntato: spostare la scadenza a quel
+punto sprecherebbe la conferma dell'altro.
+
+## 8. La serie senza ritardi
+
+In alto, sotto la frase di Casimiro, c'è da quanti giorni di fila la casa non ha
+niente in ritardo, con il record. Basta una faccenda in ritardo per azzerarla.
+
+## 9. Le tre schede
 
 - **Da fare**: quello che è in ritardo o scade oggi.
 - **Fatte**: le faccende chiuse da entrambi, con la data in cui sono state

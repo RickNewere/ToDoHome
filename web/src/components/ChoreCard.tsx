@@ -1,12 +1,13 @@
 import Casimiro from './Mascot'
 import { cadenceLabel, dueLabel, formatDate } from '../lib/chores'
-import { PERSON_LABEL, PEOPLE, type ChoreView, type Person } from '../lib/types'
+import { MAX_POSTPONES, PERSON_LABEL, PEOPLE, type ChoreView, type Person } from '../lib/types'
 
 interface Props {
   chore: ChoreView
   me: Person
   busy: boolean
   onToggle: (chore: ChoreView) => void
+  onPostpone: (chore: ChoreView) => void
   onUntick: (chore: ChoreView) => void
   onEdit: (chore: ChoreView) => void
   /** Rendered in the "Fatte" list: both ticks are in, untick yours to undo. */
@@ -25,10 +26,18 @@ export default function ChoreCard({
   me,
   busy,
   onToggle,
+  onPostpone,
   onUntick,
   onEdit,
   done = false,
 }: Props) {
+  const left = MAX_POSTPONES - chore.postpone_count
+  // Only worth offering on something already on the to do list, and only while
+  // neither of you has ticked it: moving the deadline out from under a
+  // confirmation that is already in would waste the other person's tick.
+  const canPostpone =
+    !done && chore.state !== 'upcoming' && left > 0 && chore.waitingFor.length === PEOPLE.length
+
   return (
     <article className={`card card--${done ? 'done' : chore.state}${busy ? ' card--busy' : ''}`}>
       <div className="card__head">
@@ -43,16 +52,35 @@ export default function ChoreCard({
           <p className="card__meta">
             {done ? doneMeta(chore) : cadenceLabel(chore)}
             {!done && chore.note ? ` · ${chore.note}` : ''}
+            {!done && chore.postpone_count > 0 ? ` · rimandata ${chore.postpone_count}×` : ''}
           </p>
         </div>
-        <button
-          type="button"
-          className="card__edit"
-          onClick={() => onEdit(chore)}
-          aria-label={`Modifica ${chore.name}`}
-        >
-          ✎
-        </button>
+        <div className="card__actions">
+          {canPostpone && (
+            <button
+              type="button"
+              className="card__snooze"
+              onClick={() => onPostpone(chore)}
+              disabled={busy}
+              aria-label={`Rimanda ${chore.name} a domani`}
+              title={
+                left === 1
+                  ? 'Rimanda a domani. È l’ultima volta che puoi'
+                  : 'Rimanda a domani'
+              }
+            >
+              +1g
+            </button>
+          )}
+          <button
+            type="button"
+            className="card__edit"
+            onClick={() => onEdit(chore)}
+            aria-label={`Modifica ${chore.name}`}
+          >
+            ✎
+          </button>
+        </div>
       </div>
 
       <div className="card__ticks">

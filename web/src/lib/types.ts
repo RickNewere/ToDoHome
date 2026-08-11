@@ -29,6 +29,10 @@ export interface ChoreStatusRow {
   /** Only meaningful with scheduled_on: comes back on the same day every year
    *  instead of happening once. */
   yearly: boolean
+  /** Deadline pushed out by hand, or null. Never pulls a deadline closer. */
+  postponed_to: string | null
+  /** How many times this cycle has been put off. Resets when the chore closes. */
+  postpone_count: number
   last_completed_at: string | null
   open_run_id: string | null
   riccardo_at: string | null
@@ -49,6 +53,15 @@ export interface ChoreView extends ChoreStatusRow {
 }
 
 export type Mood = 'happy' | 'calm' | 'annoyed' | 'angry' | 'furious'
+
+/** How many times one cycle of a chore can be put off before the answer is no. */
+export const MAX_POSTPONES = 2
+
+/** Consecutive days with nothing overdue, and the best run so far. */
+export interface Streak {
+  streak: number
+  best: number
+}
 
 /** What the editor form works on. `id` is null when creating a new chore. */
 export interface ChoreDraft {

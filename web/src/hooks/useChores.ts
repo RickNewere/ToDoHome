@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isConfigured, supabase } from '../lib/supabase'
 import { compareChores, computeMood, toView } from '../lib/chores'
 import { refreshWidget } from '../lib/bridge'
-import type { ChoreDraft, ChoreStatusRow, ChoreView, Person } from '../lib/types'
+import type { ChoreDraft, ChoreStatusRow, ChoreView, Person, Streak } from '../lib/types'
 
 export interface HistoryEntry {
   id: string
@@ -16,6 +16,7 @@ const RELOAD_INTERVAL_MS = 5 * 60 * 1000
 export function useChores(me: Person | null) {
   const [rows, setRows] = useState<ChoreStatusRow[]>([])
   const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [streak, setStreak] = useState<Streak | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<Set<string>>(new Set())
@@ -65,10 +66,22 @@ export function useChores(me: Person | null) {
     )
   }, [])
 
+  /** Records today in the run of clear days and reads it back. It has to be
+   *  written as it happens: which days had something overdue cannot be worked
+   *  out afterwards from the completion history. */
+  const touchStreak = useCallback(async () => {
+    if (!isConfigured) return
+    const { data, error } = await supabase.rpc('touch_streak')
+    if (error || !data) return
+    const first = Array.isArray(data) ? data[0] : data
+    if (first) setStreak({ streak: first.streak ?? 0, best: first.best ?? 0 })
+  }, [])
+
   useEffect(() => {
     void load()
     void loadHistory()
-  }, [load, loadHistory])
+    void touchStreak()
+  }, [load, loadHistory, touchStreak])
 
   // Live sync: a tick on one phone lands on the other without a refresh.
   useEffect(() => {
@@ -136,10 +149,32 @@ export function useChores(me: Person | null) {
 
       await load()
       await loadHistory()
+      void touchStreak()
       refreshWidget()
       setChoreBusy(chore.id, false)
     },
-    [me, load, loadHistory],
+    [me, load, loadHistory, touchStreak],
+  )
+
+  /** Pushes a chore one day further out without marking it done. Capped by the
+   *  database, so the message on refusal comes from there. */
+  const postpone = useCallback(
+    async (chore: ChoreView) => {
+      setChoreBusy(chore.id, true)
+      const { error } = await supabase.rpc('postpone', { p_chore_id: chore.id })
+      if (error) {
+        setError(
+          error.message.includes('gia rimandata due volte')
+            ? `“${chore.name}” è già stata rimandata due volte. Va fatta.`
+            : error.message,
+        )
+      }
+      await load()
+      void touchStreak()
+      refreshWidget()
+      setChoreBusy(chore.id, false)
+    },
+    [load, touchStreak],
   )
 
   /** Removes this person's tick from an already completed chore: the closed run
@@ -180,10 +215,11 @@ export function useChores(me: Person | null) {
 
       await load()
       await loadHistory()
+      void touchStreak()
       refreshWidget()
       setChoreBusy(chore.id, false)
     },
-    [me, load, loadHistory],
+    [me, load, loadHistory, touchStreak],
   )
 
   /** Creates or updates a chore. Returns false when the save was rejected, so
@@ -263,11 +299,13 @@ export function useChores(me: Person | null) {
     chores,
     groups,
     history,
+    streak,
     mood,
     loading,
     error,
     busy,
     toggle,
+    postpone,
     untickCompleted,
     saveChore,
     deleteChore,

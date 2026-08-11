@@ -31,6 +31,14 @@ after its day has passed points at next year rather than showing up late.
 **A clear picture of what is late.** The list is grouped into late, due today
 and on track. Anything overdue shows how many days it has been sitting there.
 
+**Put something off, honestly.** A chore you cannot get to today can be pushed
+one day out, without pretending it is done and without either tick going in.
+Twice per cycle is the limit: after that the answer is no, so postponing cannot
+quietly become a way of never doing anything.
+
+**A run of clear days.** The header counts how long the house has gone with
+nothing overdue, and remembers the best run so far. One late chore resets it.
+
 **A done list you can walk back.** The second tab holds everything closed by
 both of you, each showing when it was done and when it comes back. Both ticks
 are there in green: remove yours and the chore returns to the to-do list right
@@ -60,6 +68,10 @@ refresh.
 behind and, if anything of yours is overdue, says so in a notification listing
 the worst offenders. It only counts chores you have not ticked yet, so it goes
 quiet as soon as you have done your part, and it never fires twice in one day.
+
+**Your turn to confirm.** Because a chore needs both ticks, the second one used
+to depend on somebody happening to look. Now, when the other person ticks
+something you have not confirmed, Android says so.
 
 **Live sync.** A tick on one phone shows up on the other one straight away.
 

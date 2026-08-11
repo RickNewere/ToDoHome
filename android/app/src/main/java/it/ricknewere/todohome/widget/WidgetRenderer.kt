@@ -14,6 +14,7 @@ import it.ricknewere.todohome.data.ChoreStatus
 import it.ricknewere.todohome.data.Mood
 import it.ricknewere.todohome.data.Prefs
 import it.ricknewere.todohome.data.SupabaseApi
+import it.ricknewere.todohome.notify.PartnerNudge
 import java.text.DateFormat
 import java.util.Date
 
@@ -39,9 +40,14 @@ object WidgetRenderer {
     /** Chore currently showing the confirmation badge, if any. */
     @Volatile private var justTicked: String? = null
 
+    /**
+     * Reads the list, notifies on what changed and repaints [ids].
+     *
+     * An empty [ids] is not a reason to stop: the read still has to happen so
+     * the confirmation nudge works on a phone with no widget on its home screen.
+     * Painting nothing is then a no-op.
+     */
     fun update(context: Context, ids: IntArray, forceFetch: Boolean, quick: Boolean = false) {
-        if (ids.isEmpty()) return
-
         val manager = AppWidgetManager.getInstance(context)
         val url = Prefs.supabaseUrl(context)
         val key = Prefs.supabaseKey(context)
@@ -136,9 +142,13 @@ object WidgetRenderer {
         val body = SupabaseApi.fetchStatus(url, key, timeout)
         val fetched = body?.let { SupabaseApi.parseStatus(it) }
         if (body != null && fetched != null) {
+            // Compare against what was stored before overwriting it: that diff
+            // is what tells the owner the other person has ticked something.
+            val before = Prefs.snapshot(context)?.let { SupabaseApi.parseStatus(it) }
             cache = fetched
             cachedAt = System.currentTimeMillis()
             Prefs.setSnapshot(context, body)
+            PartnerNudge.check(context, before, fetched)
             return Loaded(fetched, false)
         }
 

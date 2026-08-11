@@ -112,6 +112,21 @@ fatto.
   all'annullamento dalla scheda "Fatte": tolta la spunta la faccenda non risulta
   più completata, e senza questa regola una annuale finiva dritta all'anno
   prossimo invece di tornare fra quelle da fare.
+- Rinvio: `postponed_to` sposta la scadenza, `postpone_count` conta quante
+  volte, massimo due per ciclo. Il rinvio spinge solo in avanti, mai indietro,
+  quindi un valore rimasto da un ciclo vecchio smette da solo di contare.
+  `toggle_check` azzera entrambe le colonne quando la faccenda si chiude. La
+  RPC `postpone` conta da oggi, non da una scadenza già passata: rimandare una
+  cosa in ritardo di una settimana compra un giorno, non cancella l'arretrato.
+- `house_state`: una riga sola, garantita dalla chiave primaria booleana. Tiene
+  `clear_since` e `best_streak` per i giorni di fila senza ritardi. Va scritta
+  mentre succede: da `chore_runs` non è ricostruibile quali giorni avessero
+  qualcosa in ritardo. La RPC `touch_streak` la aggiorna e restituisce il conto,
+  e la chiama la webapp a ogni caricamento e dopo ogni azione.
+
+La vista costruisce `due_date` in tre passaggi incatenati, `raw` poi `shifted`
+poi `due`: la data chiesta dalla regola della faccenda, poi lo spostamento al
+weekend dove vale, poi l'eventuale rinvio.
 - `chore_runs`: un giro aperto per faccenda, con le due spunte e
   `completed_at`. Un indice unico parziale su `chore_id where completed_at is
   null` impedisce che due telefoni creino giri doppi.
@@ -221,9 +236,24 @@ comparire l'errore su rete mobile.
 
 ### Notifiche
 
-Un promemoria al giorno alle 9:00 con le faccende in ritardo **che quella
-persona non ha ancora spuntato**, stessa logica personale del widget. Sta in
-`notify/LateReminder.kt`, lo sveglia `notify/ReminderReceiver.kt`.
+Due notifiche distinte, due canali distinti.
+
+**Faccende in ritardo**: un promemoria al giorno alle 9:00 con quelle in ritardo
+**che quella persona non ha ancora spuntato**, stessa logica personale del
+widget. Sta in `notify/LateReminder.kt`.
+
+**Tocca a te confermare**: quando l'altra persona spunta qualcosa che tu non hai
+confermato. Sta in `notify/PartnerNudge.kt` e non costa una chiamata in più: usa
+la copia salvata dal widget come termine di paragone, quindi il confronto è fra
+la lista di prima e quella appena letta. Silenziosa alla primissima lettura,
+quando non c'è niente con cui confrontare.
+
+Le sveglia entrambe `notify/ReminderReceiver.kt`, su due allarmi: quello
+giornaliero e una rilettura ogni mezz'ora (`ELAPSED_REALTIME`, non serve
+svegliare il telefono per una conferma). La rilettura passa da
+`WidgetRenderer.update`, che apposta **non** si ferma quando non ci sono widget
+appesi: la lettura serve comunque, altrimenti su un telefono senza widget la
+notifica di conferma non arriverebbe mai.
 
 L'allarme è `setInexactRepeating`: quello esatto richiede un permesso a parte su
 Android recenti ed è sproporzionato per un promemoria che deve solo arrivare in
