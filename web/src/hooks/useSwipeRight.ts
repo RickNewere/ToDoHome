@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent } from 'react'
 
 interface Options {
   /** When false the card never moves and the handlers do nothing. */
@@ -8,14 +8,18 @@ interface Options {
 }
 
 /** How far the card has to travel before releasing it counts as a swipe. */
-export const THRESHOLD = 88
+export const THRESHOLD = 78
 
 /** Movement below this is a tap, not a drag. */
-export const SLOP = 8
+export const SLOP = 6
 
 /** Past the threshold the card keeps moving, but grudgingly, so the gesture
  *  feels like it has caught on something. */
-const DRAG = 0.35
+const DRAG = 0.4
+
+/** Where the card goes once the swipe is committed, in pixels. Beyond any
+ *  phone's width, so it leaves the screen rather than stopping at its edge. */
+const EXIT = 520
 
 /**
  * Which way the finger has committed to, from the first movement past [SLOP].
@@ -36,35 +40,29 @@ export function travel(pulled: number): number {
   return pulled > THRESHOLD ? THRESHOLD + (pulled - THRESHOLD) * DRAG : pulled
 }
 
+type Phase = 'idle' | 'dragging' | 'leaving'
+
 /**
- * Drag a card to the right to fire an action.
+ * Drag a card to the right to fire an action, the way a chat row is archived.
  *
- * The direction is decided once, on the first few pixels, and vertical wins
- * ties: a list that stops scrolling because a finger drifted sideways is far
- * more annoying than a swipe that needs a second try.
+ * Touch events rather than pointer events on purpose: Safari on iOS cancels a
+ * pointer stream as soon as it suspects a scroll, which is exactly the moment
+ * this gesture needs it. Touch events, paired with touch-action: pan-y on the
+ * card, keep the horizontal drag while the browser keeps the vertical scroll.
  */
 export function useSwipeRight({ enabled, onTrigger }: Options) {
   const [offset, setOffset] = useState(0)
-  const [dragging, setDragging] = useState(false)
+  const [phase, setPhase] = useState<Phase>('idle')
 
   const start = useRef<{ x: number; y: number } | null>(null)
   const axis = useRef<'undecided' | 'x' | 'y'>('undecided')
   const live = useRef(0)
   const moved = useRef(false)
 
-  const reset = useCallback(() => {
-    start.current = null
-    axis.current = 'undecided'
-    live.current = 0
-    setOffset(0)
-    setDragging(false)
-  }, [])
-
-  const onPointerDown = useCallback(
-    (e: ReactPointerEvent<HTMLElement>) => {
+  const begin = useCallback(
+    (x: number, y: number) => {
       if (!enabled) return
-      if (e.pointerType === 'mouse' && e.button !== 0) return
-      start.current = { x: e.clientX, y: e.clientY }
+      start.current = { x, y }
       axis.current = 'undecided'
       moved.current = false
       live.current = 0
@@ -72,24 +70,23 @@ export function useSwipeRight({ enabled, onTrigger }: Options) {
     [enabled],
   )
 
-  const onPointerMove = useCallback((e: ReactPointerEvent<HTMLElement>) => {
+  const move = useCallback((x: number, y: number) => {
     const from = start.current
     if (!from) return
 
-    const dx = e.clientX - from.x
-    const dy = e.clientY - from.y
+    const dx = x - from.x
+    const dy = y - from.y
 
     if (axis.current === 'undecided') {
       const decided = decideAxis(dx, dy)
       if (decided === 'undecided') return
       axis.current = decided
       if (decided !== 'x') {
+        // The list is scrolling: let go of the gesture entirely.
         start.current = null
         return
       }
-      // Keep receiving moves even if the finger leaves the card.
-      e.currentTarget.setPointerCapture(e.pointerId)
-      setDragging(true)
+      setPhase('dragging')
     }
 
     moved.current = true
@@ -98,16 +95,47 @@ export function useSwipeRight({ enabled, onTrigger }: Options) {
     setOffset(travel(pulled))
   }, [])
 
-  const onPointerUp = useCallback(() => {
+  const end = useCallback(() => {
+    if (!start.current && axis.current !== 'x') {
+      start.current = null
+      return
+    }
     const reached = live.current >= THRESHOLD
-    reset()
-    if (reached) onTrigger()
-  }, [onTrigger, reset])
+    start.current = null
+    axis.current = 'undecided'
+    live.current = 0
+
+    if (reached) {
+      // Send it off the screen and act at once, so the round trip happens while
+      // the card is still sliding rather than after it.
+      setPhase('leaving')
+      setOffset(EXIT)
+      onTrigger()
+      // If the chore is still on the list a moment later, the action failed:
+      // put the card back rather than leaving a hole.
+      window.setTimeout(() => {
+        setPhase('idle')
+        setOffset(0)
+      }, 900)
+      return
+    }
+
+    setPhase('idle')
+    setOffset(0)
+  }, [onTrigger])
+
+  const cancel = useCallback(() => {
+    start.current = null
+    axis.current = 'undecided'
+    live.current = 0
+    setPhase('idle')
+    setOffset(0)
+  }, [])
 
   /** True right after a drag, so the tap it would otherwise become is ignored.
    *
    *  The enabled check matters: a swipe can be the very thing that uses up the
-   *  last postponement, and once the card stops being swipeable no pointerdown
+   *  last postponement, and once the card stops being swipeable no touchstart
    *  arrives to clear the flag, which would swallow the next honest tap. */
   const swallowedClick = useCallback(() => {
     const dragged = enabled && moved.current
@@ -115,18 +143,56 @@ export function useSwipeRight({ enabled, onTrigger }: Options) {
     return dragged
   }, [enabled])
 
+  const onTouchStart = useCallback(
+    (e: ReactTouchEvent<HTMLElement>) => {
+      const t = e.touches[0]
+      if (t) begin(t.clientX, t.clientY)
+    },
+    [begin],
+  )
+
+  const onTouchMove = useCallback(
+    (e: ReactTouchEvent<HTMLElement>) => {
+      const t = e.touches[0]
+      if (t) move(t.clientX, t.clientY)
+    },
+    [move],
+  )
+
+  // Mouse is only here so the gesture can be tried on a desktop browser.
+  const onMouseDown = useCallback(
+    (e: ReactMouseEvent<HTMLElement>) => {
+      if (e.button !== 0) return
+      begin(e.clientX, e.clientY)
+    },
+    [begin],
+  )
+
+  const onMouseMove = useCallback(
+    (e: ReactMouseEvent<HTMLElement>) => {
+      if (e.buttons === 0) return
+      move(e.clientX, e.clientY)
+    },
+    [move],
+  )
+
   return {
     offset,
-    dragging,
+    phase,
     /** 0 to 1: how close the gesture is to firing, for the reveal behind. */
     progress: Math.min(1, offset / THRESHOLD),
+    armed: offset >= THRESHOLD,
     swallowedClick,
     handlers: enabled
       ? {
-          onPointerDown,
-          onPointerMove,
-          onPointerUp,
-          onPointerCancel: reset,
+          onTouchStart,
+          onTouchMove,
+          onTouchEnd: end,
+          onTouchCancel: cancel,
+          onMouseDown,
+          onMouseMove,
+          onMouseUp: end,
+          onMouseLeave: cancel,
         }
       : {},
   }

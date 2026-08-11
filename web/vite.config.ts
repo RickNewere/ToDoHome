@@ -8,6 +8,12 @@ const base = process.env.VITE_BASE ?? '/ToDoHome/'
 
 export default defineConfig({
   base,
+  define: {
+    // Stamped into the footer. Without it there is no way to tell whether a
+    // phone is running the build you just shipped or an older one still held
+    // by the service worker.
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     VitePWA({

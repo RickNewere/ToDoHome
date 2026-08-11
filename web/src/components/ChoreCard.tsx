@@ -50,13 +50,19 @@ export default function ChoreCard({
 
   return (
     <div className="swipe">
-      {canPostpone && swipe.dragging && (
-        <div className="swipe__behind" aria-hidden="true">
+      {canPostpone && swipe.offset > 0 && (
+        <div
+          className={`swipe__behind${swipe.armed ? ' swipe__behind--armed' : ''}`}
+          aria-hidden="true"
+        >
           <span
-            className={`swipe__badge${swipe.progress >= 1 ? ' swipe__badge--armed' : ''}`}
-            style={{ opacity: Math.max(0.4, swipe.progress) }}
+            className="swipe__icon"
+            style={{ transform: `scale(${0.7 + swipe.progress * 0.3})` }}
           >
-            {swipe.progress >= 1 ? 'Rimanda a domani ✓' : 'Rimanda a domani'}
+            ⏰
+          </span>
+          <span className="swipe__label">
+            {swipe.armed ? 'Rimandata a domani' : 'Rimanda a domani'}
           </span>
         </div>
       )}
@@ -64,12 +70,8 @@ export default function ChoreCard({
       <article
         className={`card card--${done ? 'done' : chore.state}${busy ? ' card--busy' : ''}${
           canPostpone ? ' card--swipeable' : ''
-        }`}
-        style={
-          swipe.offset > 0
-            ? { transform: `translateX(${swipe.offset}px)`, transition: 'none' }
-            : undefined
-        }
+        }${swipe.phase === 'dragging' ? ' card--dragging' : ''}`}
+        style={swipe.offset > 0 ? { transform: `translateX(${swipe.offset}px)` } : undefined}
         {...swipe.handlers}
       >
       <div className="card__head">

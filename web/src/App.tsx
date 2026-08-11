@@ -43,6 +43,17 @@ function usePerson(): [Person | null, (p: Person) => void] {
 
 const SWIPE_HINT_KEY = 'todohome.swipeHintSeen'
 
+/** When this build was compiled, so a phone can be checked against what was
+ *  actually shipped instead of guessing whether it updated. */
+function buildStamp(): string {
+  return new Date(__BUILD_TIME__).toLocaleString('it-IT', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export default function App() {
   const [me, setMe] = usePerson()
   const [tab, setTab] = useState<Tab>('todo')
@@ -279,7 +290,7 @@ export default function App() {
         <div className="foot__buttons">
           <button
             type="button"
-            className="btn-ghost"
+            className={`btn-ghost${refreshState !== 'idle' ? ' btn-ghost--working' : ''}`}
             onClick={() => void refresh()}
             disabled={refreshState !== 'idle'}
           >
@@ -294,6 +305,7 @@ export default function App() {
           )}
         </div>
         <p className="muted">Una faccenda è chiusa solo quando la spuntano entrambi.</p>
+        <p className="build">versione {buildStamp()}</p>
       </footer>
 
       {editing && (

@@ -130,16 +130,43 @@ weekend dove vale, poi l'eventuale rinvio.
 
 Il rinvio si fa scorrendo la scheda verso destra, non con un pulsante. Il gesto
 sta in `web/src/hooks/useSwipeRight.ts`, con `decideAxis` e `travel` esportate
-apposta perché siano collaudabili senza un dito vero. Due regole non ovvie: in
-diagonale vince sempre lo scorrimento verticale (una lista che smette di
-scorrere dà più fastidio di un rinvio da ripetere), e `swallowedClick` controlla
-anche `enabled`, perché un rinvio può essere proprio quello che consuma
-l'ultimo tentativo e da lì in poi non arriva più nessun `pointerdown` ad
-abbassare il flag.
+apposta perché siano collaudabili senza un dito vero.
+
+Usa gli eventi **touch**, non quelli puntatore: Safari su iOS annulla il flusso
+dei puntatori appena sospetta uno scorrimento, cioè esattamente quando serve.
+`touch-action: pan-y` sulla scheda lascia al browser lo scorrimento verticale e
+tiene per noi il trascinamento orizzontale. React registra `touchmove` come
+passivo, quindi `preventDefault` lì dentro non funziona: è `touch-action` a
+fare il lavoro, non il codice.
+
+Tre trappole già pagate:
+
+- Le regole `.card--swipeable` e `.card--dragging` devono stare **dopo** `.card`
+  nel CSS. Stessa specificità e `.card` dichiara una sua `transition`: messe
+  prima, la transizione sul trascinamento veniva sovrascritta e la scheda
+  scattava invece di scorrere.
+- In diagonale vince sempre lo scorrimento verticale. Una lista che smette di
+  scorrere dà molto più fastidio di un rinvio da ripetere.
+- `swallowedClick` controlla anche `enabled`, perché un rinvio può essere
+  proprio quello che consuma l'ultimo tentativo, e da lì in poi non arriva più
+  nessun `touchstart` ad abbassare il flag.
 
 `reload` ricarica lista, storico e serie insieme. Prima ricaricava solo la
 lista: il pulsante "Aggiorna" sembrava rotto perché non cambiava niente a
-schermo e le altre schede restavano vecchie.
+schermo e le altre schede restavano vecchie. Ha anche uno stato `:active`: senza
+non dava nessun segno di essere stato premuto.
+
+## Versione in esecuzione
+
+`vite.config.ts` inietta `__BUILD_TIME__` e il piè di pagina lo stampa. Serve a
+distinguere "la funzione non va" da "il telefono ha ancora la build vecchia":
+una app installata sulla Home viene ripresa molto più spesso di quanto venga
+avviata, e a ogni ripresa nessuno va a cercare un service worker nuovo.
+
+`main.tsx` registra il service worker con `registerSW`, applica subito
+l'aggiornamento appena ne trova uno, e controlla a ogni ritorno in primo piano
+oltre che ogni mezz'ora. Prima di questo la app poteva restare ferma per giorni
+su un bundle vecchio.
 - `chore_runs`: un giro aperto per faccenda, con le due spunte e
   `completed_at`. Un indice unico parziale su `chore_id where completed_at is
   null` impedisce che due telefoni creino giri doppi.

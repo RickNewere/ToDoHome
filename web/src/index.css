@@ -129,36 +129,6 @@ code {
   position: relative;
 }
 
-/* Sits behind the card and is only visible through the gap the card leaves as
-   it slides right. Bottom inset matches the card's own margin. */
-.swipe__behind {
-  position: absolute;
-  inset: 0 0 9px 0;
-  display: flex;
-  align-items: center;
-  padding-left: 17px;
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--due) 20%, var(--surface));
-  pointer-events: none;
-}
-
-.swipe__badge {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--due);
-  white-space: nowrap;
-}
-
-.swipe__badge--armed {
-  color: var(--ok);
-}
-
-.card--swipeable {
-  /* The browser keeps vertical scrolling, the sideways drag is ours. */
-  touch-action: pan-y;
-  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.15s;
-}
-
 .topbar__right {
   display: flex;
   align-items: center;
@@ -429,6 +399,53 @@ code {
 }
 .card--upcoming {
   border-left-color: var(--ok);
+}
+
+/* Swipe to postpone. These rules must stay after .card: same specificity, and
+   .card sets its own transition, so an earlier block would lose the transform
+   animation and the card would jump instead of sliding back. */
+.card--swipeable {
+  /* The browser keeps vertical scrolling, the sideways drag is ours. */
+  touch-action: pan-y;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s;
+}
+
+/* While a finger is on it the card tracks that finger exactly, so no easing. */
+.card--dragging {
+  transition: none;
+  box-shadow: 0 6px 18px rgb(15 23 42 / 18%);
+}
+
+/* Sits behind the card, revealed by the gap the card leaves as it slides.
+   Bottom inset matches the card's own margin. */
+.swipe__behind {
+  position: absolute;
+  inset: 0 0 9px 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-left: 15px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--due) 26%, var(--surface));
+  color: var(--due);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.swipe__behind--armed {
+  background: color-mix(in srgb, var(--ok) 30%, var(--surface));
+  color: var(--ok);
+}
+
+.swipe__icon {
+  display: inline-block;
+  font-size: 19px;
+  line-height: 1;
+  transform-origin: center;
 }
 
 .card--busy {
@@ -717,13 +734,38 @@ code {
 }
 
 .btn-ghost {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 18px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
+  color: var(--text);
   font-size: 14px;
   font-weight: 600;
+  font-family: inherit;
+  transition: transform 0.12s, background 0.15s, opacity 0.15s;
+}
+
+/* Without this the button gave no sign at all of having been pressed, which
+   read as a dead control while the request was still in flight. */
+.btn-ghost:active {
+  transform: scale(0.95);
+  background: var(--surface-2);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.75;
+}
+
+.build {
+  font-size: 11px;
+  color: var(--dim);
+  opacity: 0.6;
+}
+
+.btn-ghost--working {
+  color: var(--mood);
+  border-color: color-mix(in srgb, var(--mood) 45%, var(--border));
 }
 
 .toast {
