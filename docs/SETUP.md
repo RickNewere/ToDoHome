@@ -110,6 +110,18 @@ Cosa fa il widget:
   comunque aperta finché non spunta anche l'altra persona.
 - Quando hai spuntato tutto, il widget ti dice che tocca all'altro.
 - Toccando la casetta forza un aggiornamento, toccando il resto apre l'app.
+- Se la rete non risponde il widget continua a mostrare l'ultima lista letta e
+  scrive a che ora l'ha letta, invece di svuotarsi.
+
+### Notifiche
+
+Al primo avvio l'app chiede il permesso di mandare notifiche. Da lì in poi, ogni
+mattina alle 9, se qualcosa che **tu** non hai ancora spuntato è in ritardo,
+arriva un promemoria con l'elenco. Se hai già fatto la tua parte non ti disturba,
+e non ne manda più di una al giorno.
+
+Per spegnerle basta il pannello di Android: **Impostazioni** > **App** >
+**ToDoHome** > **Notifiche**.
 
 ## 6. Cambiare le faccende
 

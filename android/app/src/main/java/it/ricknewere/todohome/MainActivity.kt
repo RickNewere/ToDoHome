@@ -1,8 +1,11 @@
 package it.ricknewere.todohome
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
@@ -11,8 +14,11 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import it.ricknewere.todohome.notify.LateReminder
 import it.ricknewere.todohome.widget.ChoreWidgetProvider
 
 /**
@@ -23,6 +29,11 @@ import it.ricknewere.todohome.widget.ChoreWidgetProvider
 class MainActivity : ComponentActivity() {
 
     private lateinit var web: WebView
+
+    /** Nothing to do with the answer: the reminder simply stays quiet when the
+     *  permission is refused, and Android settings can turn it on later. */
+    private val askNotifications =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,6 +94,16 @@ class MainActivity : ComponentActivity() {
         if (!restored) {
             web.loadUrl(BuildConfig.WEB_URL)
         }
+
+        // The reminder needs both a permission and an alarm. Asking on the first
+        // launch keeps it out of the way of choosing who you are.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        LateReminder.schedule(this)
 
         onBackPressedDispatcher.addCallback(this) {
             if (web.canGoBack()) {

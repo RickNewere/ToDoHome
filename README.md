@@ -56,6 +56,11 @@ then leaves the list, because from your side it is done. When you have ticked
 everything the widget says whose turn it is now. Tapping the mascot forces a
 refresh.
 
+**A nudge in the morning.** Once a day the Android app checks what has fallen
+behind and, if anything of yours is overdue, says so in a notification listing
+the worst offenders. It only counts chores you have not ticked yet, so it goes
+quiet as soon as you have done your part, and it never fires twice in one day.
+
 **Live sync.** A tick on one phone shows up on the other one straight away.
 
 **History.** Every closed chore is logged, so you can see when something was

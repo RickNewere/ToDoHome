@@ -14,6 +14,8 @@ import it.ricknewere.todohome.data.ChoreStatus
 import it.ricknewere.todohome.data.Mood
 import it.ricknewere.todohome.data.Prefs
 import it.ricknewere.todohome.data.SupabaseApi
+import java.text.DateFormat
+import java.util.Date
 
 /**
  * Builds the widget content. Every method blocks on network and must run on a
@@ -37,7 +39,7 @@ object WidgetRenderer {
     /** Chore currently showing the confirmation badge, if any. */
     @Volatile private var justTicked: String? = null
 
-    fun update(context: Context, ids: IntArray, forceFetch: Boolean) {
+    fun update(context: Context, ids: IntArray, forceFetch: Boolean, quick: Boolean = false) {
         if (ids.isEmpty()) return
 
         val manager = AppWidgetManager.getInstance(context)
@@ -49,23 +51,32 @@ object WidgetRenderer {
             return
         }
 
-        val chores = loadChores(context, url, key, forceFetch)
-        if (chores == null) {
+        val result = loadChores(context, url, key, forceFetch, quick)
+        if (result == null) {
+            // Nothing was ever read on this phone, so there is nothing to show.
             ids.forEach { manager.updateAppWidget(it, offlineView(context)) }
             return
         }
 
-        paint(context, manager, ids, chores)
+        paint(context, manager, ids, result.chores, result.stale)
     }
+
+    /** Rows to draw, plus whether they came from the stored copy after a failed
+     *  read rather than from the server. */
+    private class Loaded(val chores: List<ChoreStatus>, val stale: Boolean)
 
     private fun paint(
         context: Context,
         manager: AppWidgetManager,
         ids: IntArray,
         chores: List<ChoreStatus>,
+        stale: Boolean = false,
     ) {
         ids.forEach { id ->
-            manager.updateAppWidget(id, buildView(context, chores, rowsFor(context, manager, id)))
+            manager.updateAppWidget(
+                id,
+                buildView(context, chores, rowsFor(context, manager, id), stale),
+            )
         }
     }
 
@@ -83,25 +94,31 @@ object WidgetRenderer {
 
         val manager = AppWidgetManager.getInstance(context)
         val ids = ChoreWidgetProvider.allWidgetIds(context)
-        val known = cache
+        // The stored copy, not just the memory cache: the process is usually
+        // brand new here, and without it the press showed no confirmation.
+        val known = storedChores(context)
         val adding = known?.firstOrNull { it.id == choreId }?.checkedBy(user) == false
+        val ticked = known?.map { if (it.id == choreId) it.withTickFrom(user) else it }
 
-        if (adding && known != null) {
+        if (adding && ticked != null) {
             justTicked = choreId
-            paint(
-                context,
-                manager,
-                ids,
-                known.map { if (it.id == choreId) it.withTickFrom(user) else it },
-            )
+            paint(context, manager, ids, ticked)
         }
 
-        SupabaseApi.toggle(url, key, choreId, user)
+        val sent = SupabaseApi.toggle(url, key, choreId, user)
         cache = null
 
         if (adding) Thread.sleep(CONFIRM_MS)
         justTicked = null
-        update(context, ids, forceFetch = true)
+
+        // The repaint runs on what is left of the broadcast window, so it uses
+        // the short timeout. If it does not make it, the locally ticked list is
+        // still right for this phone: the row the press removed stays gone.
+        if (sent && ticked != null) {
+            cache = ticked
+            cachedAt = System.currentTimeMillis()
+        }
+        update(context, ids, forceFetch = true, quick = true)
     }
 
     private fun loadChores(
@@ -109,21 +126,34 @@ object WidgetRenderer {
         url: String,
         key: String,
         forceFetch: Boolean,
-    ): List<ChoreStatus>? {
+        quick: Boolean,
+    ): Loaded? {
         val cached = cache
         val fresh = System.currentTimeMillis() - cachedAt < CACHE_MS
-        if (!forceFetch && cached != null && fresh) return cached
+        if (!forceFetch && cached != null && fresh) return Loaded(cached, false)
 
-        val fetched = SupabaseApi.fetchStatus(url, key)
-        if (fetched != null) {
+        val timeout = if (quick) SupabaseApi.QUICK_TIMEOUT_MS else SupabaseApi.TIMEOUT_MS
+        val body = SupabaseApi.fetchStatus(url, key, timeout)
+        val fetched = body?.let { SupabaseApi.parseStatus(it) }
+        if (body != null && fetched != null) {
             cache = fetched
             cachedAt = System.currentTimeMillis()
-            Prefs.markSynced(context)
-            return fetched
+            Prefs.setSnapshot(context, body)
+            return Loaded(fetched, false)
         }
-        // Network failed: better to keep showing the last known state than nothing.
-        return cached
+
+        // The read failed. Showing the last known list beats wiping the widget:
+        // the memory cache is usually empty here because the process was killed
+        // between updates, so the stored copy is what actually saves it.
+        if (cached != null) return Loaded(cached, true)
+        val stored = Prefs.snapshot(context)?.let { SupabaseApi.parseStatus(it) }
+        return stored?.let { Loaded(it, true) }
     }
+
+    /** Rows from the stored copy alone, for the paths that must not hit the
+     *  network. Null when this phone has never managed to read the list. */
+    private fun storedChores(context: Context): List<ChoreStatus>? =
+        cache ?: Prefs.snapshot(context)?.let { SupabaseApi.parseStatus(it) }
 
     /**
      * Rows that fit in the current widget height.
@@ -148,7 +178,12 @@ object WidgetRenderer {
         return ((heightDp - CHROME_DP) / ROW_DP).coerceIn(1, 6)
     }
 
-    private fun buildView(context: Context, chores: List<ChoreStatus>, maxRows: Int): RemoteViews {
+    private fun buildView(
+        context: Context,
+        chores: List<ChoreStatus>,
+        maxRows: Int,
+        stale: Boolean = false,
+    ): RemoteViews {
         val me = Prefs.user(context)
         val mood = Mood.of(chores)
         val late = chores.count { it.isLate }
@@ -189,7 +224,20 @@ object WidgetRenderer {
             rv.setTextViewText(R.id.subtitle, "Hai fatto la tua parte")
         }
 
+        // These rows are the stored copy: say when they were read rather than
+        // pass them off as current.
+        if (stale) {
+            rv.setTextViewText(R.id.subtitle, "Aggiornato ${syncedAt(context)}")
+        }
+
         return rv
+    }
+
+    /** "alle 14:32", or "molto tempo fa" when no read was ever recorded. */
+    private fun syncedAt(context: Context): String {
+        val at = Prefs.lastSync(context)
+        if (at <= 0L) return "molto tempo fa"
+        return "alle " + DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(at))
     }
 
     private fun emptyMessage(chores: List<ChoreStatus>, me: String?): String {

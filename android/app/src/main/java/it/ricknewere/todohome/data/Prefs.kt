@@ -16,6 +16,8 @@ object Prefs {
     private const val KEY_URL = "supabase_url"
     private const val KEY_ANON = "supabase_anon"
     private const val KEY_SYNC = "last_sync"
+    private const val KEY_SNAPSHOT = "last_rows"
+    private const val KEY_NOTIFIED_ON = "notified_on"
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
@@ -48,7 +50,27 @@ object Prefs {
 
     fun lastSync(ctx: Context): Long = prefs(ctx).getLong(KEY_SYNC, 0L)
 
-    fun markSynced(ctx: Context) {
-        prefs(ctx).edit().putLong(KEY_SYNC, System.currentTimeMillis()).apply()
+    /**
+     * Last chore list read from the server, kept as the raw response.
+     *
+     * The widget runs inside a broadcast receiver, so its process is killed
+     * between updates and an in memory cache is empty almost every time it wakes
+     * up. Without this, one flaky request was enough to replace the whole widget
+     * with an error. Stale rows beat no rows.
+     */
+    fun snapshot(ctx: Context): String? = prefs(ctx).getString(KEY_SNAPSHOT, null)
+
+    fun setSnapshot(ctx: Context, body: String) {
+        prefs(ctx).edit()
+            .putString(KEY_SNAPSHOT, body)
+            .putLong(KEY_SYNC, System.currentTimeMillis())
+            .apply()
+    }
+
+    /** Day, as yyyy-MM-dd, the late reminder was last posted. */
+    fun notifiedOn(ctx: Context): String? = prefs(ctx).getString(KEY_NOTIFIED_ON, null)
+
+    fun setNotifiedOn(ctx: Context, day: String) {
+        prefs(ctx).edit().putString(KEY_NOTIFIED_ON, day).apply()
     }
 }

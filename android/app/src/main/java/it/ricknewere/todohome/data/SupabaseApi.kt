@@ -16,38 +16,45 @@ import java.net.URL
 object SupabaseApi {
 
     private const val TAG = "ToDoHomeApi"
+    /** Mobile data needs room for DNS plus a TLS handshake before a byte moves,
+     *  so an ordinary read waits this long before giving up. */
+    const val TIMEOUT_MS = 10_000
+
     /** A tick costs two calls plus the confirmation pause, and all of it runs
-     *  inside a broadcast that the system kills after about ten seconds. Keeping
-     *  each call short is what stops a slow network from losing the repaint. */
-    private const val TIMEOUT_MS = 4_000
+     *  inside a broadcast the system kills after about ten seconds. The repaint
+     *  that follows the tick gets the short budget; the tick itself does not,
+     *  because losing that would lose the press. */
+    const val QUICK_TIMEOUT_MS = 3_500
 
     private val FIELDS = listOf(
         "id", "name", "emoji", "days_late", "riccardo_at", "roberta_at", "sort_order",
     ).joinToString(",")
 
-    /** Reads the whole chore list with due dates already computed by Postgres.
-     *  Returns null when the call fails, so callers can keep the previous view. */
-    fun fetchStatus(baseUrl: String, anonKey: String): List<ChoreStatus>? {
+    /** Reads the whole chore list with due dates already computed by Postgres,
+     *  as the raw response body so callers can store it and re-read it later.
+     *  Returns null when the call fails. */
+    fun fetchStatus(baseUrl: String, anonKey: String, timeoutMs: Int = TIMEOUT_MS): String? {
         val url = "$baseUrl/rest/v1/chore_status?select=$FIELDS&order=sort_order"
-        val body = request("GET", url, anonKey, null) ?: return null
+        return request("GET", url, anonKey, null, timeoutMs)
+    }
 
-        return try {
-            val array = JSONArray(body)
-            (0 until array.length()).map { i ->
-                val o = array.getJSONObject(i)
-                ChoreStatus(
-                    id = o.getString("id"),
-                    name = o.getString("name"),
-                    emoji = o.optString("emoji", "🏠"),
-                    daysLate = o.optInt("days_late", 0),
-                    riccardoChecked = !o.isNull("riccardo_at"),
-                    robertaChecked = !o.isNull("roberta_at"),
-                )
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "risposta non leggibile", e)
-            null
+    /** Turns a stored or freshly fetched response into rows. */
+    fun parseStatus(body: String): List<ChoreStatus>? = try {
+        val array = JSONArray(body)
+        (0 until array.length()).map { i ->
+            val o = array.getJSONObject(i)
+            ChoreStatus(
+                id = o.getString("id"),
+                name = o.getString("name"),
+                emoji = o.optString("emoji", "🏠"),
+                daysLate = o.optInt("days_late", 0),
+                riccardoChecked = !o.isNull("riccardo_at"),
+                robertaChecked = !o.isNull("roberta_at"),
+            )
         }
+    } catch (e: Exception) {
+        Log.w(TAG, "risposta non leggibile", e)
+        null
     }
 
     /** Toggles one person's tick. The chore closes only once both have ticked,
@@ -58,16 +65,28 @@ object SupabaseApi {
             .put("p_user", user)
             .toString()
 
-        return request("POST", "$baseUrl/rest/v1/rpc/toggle_check", anonKey, payload) != null
+        return request(
+            "POST",
+            "$baseUrl/rest/v1/rpc/toggle_check",
+            anonKey,
+            payload,
+            TIMEOUT_MS,
+        ) != null
     }
 
-    private fun request(method: String, url: String, anonKey: String, body: String?): String? {
+    private fun request(
+        method: String,
+        url: String,
+        anonKey: String,
+        body: String?,
+        timeoutMs: Int,
+    ): String? {
         var conn: HttpURLConnection? = null
         return try {
             conn = (URL(url).openConnection() as HttpURLConnection).apply {
                 requestMethod = method
-                connectTimeout = TIMEOUT_MS
-                readTimeout = TIMEOUT_MS
+                connectTimeout = timeoutMs
+                readTimeout = timeoutMs
                 setRequestProperty("apikey", anonKey)
                 setRequestProperty("Authorization", "Bearer $anonKey")
                 setRequestProperty("Accept", "application/json")

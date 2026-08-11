@@ -203,6 +203,42 @@ genera un aggiornamento: `OPTION_APPWIDGET_MIN_HEIGHT` è l'altezza da
 orizzontale, `OPTION_APPWIDGET_MAX_HEIGHT` quella da verticale. Leggendo il
 minimo in verticale il widget mostrava una riga sola lasciando il resto vuoto.
 
+Il widget conserva l'ultima lista letta in `SharedPreferences`, non solo in
+memoria. Il processo di un widget viene ucciso fra un aggiornamento e l'altro,
+quindi la cache in RAM è quasi sempre vuota al risveglio e bastava un intoppo di
+rete per sostituire tutto con "Non riesco a leggere". Ora una lettura fallita
+ridisegna la lista salvata e scrive "Aggiornato alle HH:MM" nel sottotitolo. La
+schermata di errore resta solo per un telefono che non è mai riuscito a leggere.
+
+I timeout di rete sono due: `TIMEOUT_MS` (10s) per le letture normali e
+`QUICK_TIMEOUT_MS` (3,5s) per il solo ridisegno dopo una spunta, che deve stare
+dentro i dieci secondi scarsi concessi a un broadcast. Abbassarli entrambi fa
+comparire l'errore su rete mobile.
+
+### Notifiche
+
+Un promemoria al giorno alle 9:00 con le faccende in ritardo **che quella
+persona non ha ancora spuntato**, stessa logica personale del widget. Sta in
+`notify/LateReminder.kt`, lo sveglia `notify/ReminderReceiver.kt`.
+
+L'allarme è `setInexactRepeating`: quello esatto richiede un permesso a parte su
+Android recenti ed è sproporzionato per un promemoria che deve solo arrivare in
+mattinata. Va riarmato dopo il riavvio e dopo un aggiornamento dell'app, da cui
+`BOOT_COMPLETED` e `MY_PACKAGE_REPLACED` nel manifest. `notifiedOn` in `Prefs`
+impedisce due notifiche nello stesso giorno.
+
+Il receiver non è esportato in release. Per provarlo serve una build debug, dove
+il manifest lo esporta apposta:
+
+```
+gradlew.bat assembleDebug
+adb shell am broadcast -n it.ricknewere.todohome/.notify.ReminderReceiver \
+  -a it.ricknewere.todohome.ACTION_CHECK
+```
+
+Senza faccende in ritardo non parte niente: per provarla creare una faccenda
+usa e getta con `scheduled_on` nel passato e `yearly = false`.
+
 `TODOHOME_URL` in `gradle.properties` decide cosa carica la WebView. Per provare
 contro il dev server:
 
